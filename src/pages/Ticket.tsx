@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-const Index = () => {
+const Ticket = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
   const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : undefined);
@@ -180,4 +180,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Ticket;

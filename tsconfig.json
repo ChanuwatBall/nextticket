@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "moduleResolution": "node",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "strict": true,
     "allowJs": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
