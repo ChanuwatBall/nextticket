@@ -97,6 +97,9 @@ export const mockTrips: Trip[] = [
   { id: 't3', routeId: 'northern', originProvinceId: 'bkk', destinationProvinceId: 'cnx', departureTime: '21:30', arrivalTime: '07:30', price: 750, availableSeats: 6, totalSeats: 24, tripType: 'ด่วนพิเศษ', busType: 'VIP First Class', date: '2026-03-05' },
   { id: 't4', routeId: 'southern', originProvinceId: 'bkk', destinationProvinceId: 'hdy', departureTime: '18:00', arrivalTime: '07:00', price: 850, availableSeats: 18, totalSeats: 40, tripType: 'ด่วนพิเศษ', busType: 'VIP 24 ที่นั่ง', date: '2026-03-05' },
   { id: 't5', routeId: 'northeast', originProvinceId: 'bkk', destinationProvinceId: 'udn', departureTime: '19:00', arrivalTime: '05:00', price: 480, availableSeats: 30, totalSeats: 40, tripType: 'ปรับอากาศ', busType: 'ป.1 (ป.อ.)', date: '2026-03-05' },
+  { id: 't6', routeId: 'southern', originProvinceId: 'bkk', destinationProvinceId: 'skn', departureTime: '19:00', arrivalTime: '05:30', price: 600, availableSeats: 20, totalSeats: 40, tripType: 'ด่วนพิเศษ', busType: 'VIP 24 ที่นั่ง', date: '2026-03-05' },
+  { id: 't7', routeId: 'southern', originProvinceId: 'bkk', destinationProvinceId: 'skn', departureTime: '21:00', arrivalTime: '07:00', price: 700, availableSeats: 14, totalSeats: 32, tripType: 'ด่วนพิเศษ', busType: 'VIP 32 ที่นั่ง', date: '2026-03-05' },
+  { id: 't8', routeId: 'eastern', originProvinceId: 'bkk', destinationProvinceId: 'pty', departureTime: '09:00', arrivalTime: '12:00', price: 200, availableSeats: 35, totalSeats: 40, tripType: 'ปรับอากาศ', busType: 'ป.1 (ป.อ.)', date: '2026-03-05' },
 ];
 
 export const generateSeats = (totalSeats: number): Seat[] => {
