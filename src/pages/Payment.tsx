@@ -50,7 +50,7 @@ const PaymentPage = () => {
     // Simulate payment processing
     setTimeout(() => {
       store.setPaymentStatus("success");
-      navigate("/ticket");
+      navigate("/e-ticket");
     }, 3000);
   }, [navigate, store]);
 
