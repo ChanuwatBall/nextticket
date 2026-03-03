@@ -10,7 +10,7 @@ const navItems = [
 ];
 
 // Hide bottom nav on these booking-flow routes
-const hiddenRoutes = ['/search', '/seats', '/passengers', '/payment', '/e-ticket'];
+const hiddenRoutes = ['/ticket', '/search', '/seats', '/passengers', '/payment', '/e-ticket'];
 
 const BottomNav = () => {
   const { pathname } = useLocation();
