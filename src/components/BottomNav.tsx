@@ -1,65 +1,43 @@
-'use client';
+import { Link, useLocation } from 'react-router-dom';
+import { Home, Search, Tag, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-import React from 'react';
- 
+const navItems = [
+  { to: '/', label: 'หน้าแรก', icon: Home },
+  { to: '/ticket', label: 'ค้นหา', icon: Search },
+  { to: '/promotions', label: 'โปรโมชั่น', icon: Tag },
+  { to: '/profile', label: 'โปรไฟล์', icon: User },
+];
 
-import useNavigation from '@/hooks/use-navigation';
-import useScrollingEffect from '@/hooks/use-scroll';
-import { Icon } from '@iconify/react';
-import { Link } from 'react-router-dom';
+// Hide bottom nav on these booking-flow routes
+const hiddenRoutes = ['/search', '/seats', '/passengers', '/payment', '/e-ticket'];
 
 const BottomNav = () => {
-  const scrollDirection = useScrollingEffect(); // Use the custom hook
-  const navClass = scrollDirection === 'up' ? '' : 'opacity-25 duration-500';
+  const { pathname } = useLocation();
 
-  const {
-    isHomeActive,
-    isExploreActive,
-    isNotificationsActive,
-    isMessagesActive,
-  } = useNavigation();
+  if (hiddenRoutes.includes(pathname)) return null;
 
   return (
-    <div
-      className={`fixed bottom-0 w-full py-4 z-10 bg-zinc-100 dark:bg-zinc-950 border-t dark:border-zinc-800 border-zinc-200 shadow-lg sm:hidden ${navClass}`}
-    >
-      <div className="flex flex-row justify-around items-center bg-transparent w-full">
-        <Link to="/" className="flex items-center relative">
-          {isHomeActive ? (
-            <Icon icon="mingcute:home-5-fill" width="32" height="32" />
-          ) : (
-            <Icon icon="mingcute:home-5-line" width="32" height="32" />
-          )}
-          {/* <span className="h-2 w-2 rounded-full bg-sky-500 absolute -top-0.5 right-[3px]"></span> */}
-        </Link>
-        <Link to="/explore" className="flex items-center">
-          {isExploreActive ? (
-            <Icon
-              icon="uil:search"
-              width="32"
-              height="32"
-              className="stroke-current stroke-5"
-            />
-          ) : (
-            <Icon icon="uil:search" width="32" height="32" />
-          )}
-        </Link>
-        <Link to="/notifications" className="flex items-center">
-          {isNotificationsActive ? (
-            <Icon icon="mingcute:notification-fill" width="32" height="32" />
-          ) : (
-            <Icon icon="mingcute:notification-line" width="32" height="32" />
-          )}
-        </Link>
-        <Link to="/messages" className="flex items-center">
-          {isMessagesActive ? (
-            <Icon icon="ic:baseline-email" width="32" height="32" />
-          ) : (
-            <Icon icon="ic:outline-email" width="32" height="32" />
-          )}
-        </Link>
+    <nav className="fixed bottom-0 w-full z-50 bg-card border-t border-border shadow-lg sm:hidden">
+      <div className="flex justify-around items-center h-16">
+        {navItems.map(({ to, label, icon: Icon }) => {
+          const active = pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors',
+                active ? 'text-primary font-bold' : 'text-muted-foreground'
+              )}
+            >
+              <Icon className="h-6 w-6" strokeWidth={active ? 2.5 : 1.5} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </div>
-    </div>
+    </nav>
   );
 };
 
