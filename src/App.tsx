@@ -11,6 +11,7 @@ import PassengerInfo from "./pages/PassengerInfo";
 import Payment from "./pages/Payment";
 import ETicket from "./pages/ETicket";
 import MyTickets from "./pages/MyTickets";
+import TicketDetail from "./pages/TicketDetail";
 import Promotions from "./pages/Promotions";
 import Profile from "./pages/Profile";
 import Points from "./pages/Points";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/payment" element={<Payment />} />
           <Route path="/e-ticket" element={<ETicket />} />
           <Route path="/my-tickets" element={<MyTickets />} />
+          <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
           <Route path="/promotions" element={<Promotions />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/points" element={<Points />} />
