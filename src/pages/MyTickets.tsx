@@ -1,8 +1,9 @@
+import { Link } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { QrCode, MapPin, Clock } from "lucide-react";
+import { QrCode, MapPin, Clock, ChevronRight } from "lucide-react";
 
 const mockTickets = [
   {
@@ -62,36 +63,36 @@ const MyTicketsPage = () => {
               {mockTickets
                 .filter((t) => tab === "all" || t.status === tab)
                 .map((ticket) => (
-                  <Card key={ticket.id} className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="text-xs text-muted-foreground">#{ticket.id}</p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <MapPin className="h-3.5 w-3.5 text-primary" />
-                            <span className="font-bold">{ticket.origin} → {ticket.destination}</span>
+                  <Link key={ticket.id} to={`/my-tickets/${ticket.id}`}>
+                    <Card className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="text-xs text-muted-foreground">#{ticket.id}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <MapPin className="h-3.5 w-3.5 text-primary" />
+                              <span className="font-bold">{ticket.origin} → {ticket.destination}</span>
+                            </div>
                           </div>
+                          <Badge variant={statusConfig[ticket.status].variant}>
+                            {statusConfig[ticket.status].label}
+                          </Badge>
                         </div>
-                        <Badge variant={statusConfig[ticket.status].variant}>
-                          {statusConfig[ticket.status].label}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{ticket.date}</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {ticket.departureTime}
-                        </span>
-                        <span>ที่นั่ง {ticket.seats.join(", ")}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                        <span className="font-bold text-primary">฿{ticket.total}</span>
-                        {ticket.status === "upcoming" && (
-                          <QrCode className="h-5 w-5 text-muted-foreground" />
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{ticket.date}</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {ticket.departureTime}
+                          </span>
+                          <span>ที่นั่ง {ticket.seats.join(", ")}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                          <span className="font-bold text-primary">฿{ticket.total}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
             </TabsContent>
           ))}
