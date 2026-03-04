@@ -18,6 +18,7 @@ import Points from "./pages/Points";
 import Wallet from "./pages/Wallet";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
+import PromotionDetail from "./pages/PromotionDetail";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +38,8 @@ const App = () => (
           <Route path="/e-ticket" element={<ETicket />} />
           <Route path="/my-tickets" element={<MyTickets />} />
           <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
-          <Route path="/promotions" element={<Promotions />} />
+          <Route path="/promotions" element={<Promotions />} /> 
+          <Route path="/promotions/:promoId" element={<PromotionDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/points" element={<Points />} />
           <Route path="/wallet" element={<Wallet />} />

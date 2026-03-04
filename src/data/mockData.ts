@@ -133,17 +133,17 @@ export const generateSeats = (totalSeats: number): Seat[] => {
 export const mockPromotions: Promotion[] = [
   {
     id: 'p1', title: 'ส่วนลด 10% สายเหนือ', description: 'รับส่วนลด 10% สำหรับเส้นทางสายเหนือทุกเที่ยว',
-    imageUrl: '', promoCode: 'NORTH10', discountPercent: 10, discountAmount: 0,
+    imageUrl: '../assets/promotion/discount10.jpg', promoCode: 'NORTH10', discountPercent: 10, discountAmount: 0,
     remainingQuota: 50, expiryDate: '2026-04-30', validityDays: 30, memberOnly: false,
   },
   {
     id: 'p2', title: 'สมาชิกลด 100 บาท', description: 'สมาชิกรับส่วนลด 100 บาท เมื่อจองผ่านแอป',
-    imageUrl: '', promoCode: 'MEMBER100', discountPercent: 0, discountAmount: 100,
+    imageUrl: '../assets/promotion/member100.jpg', promoCode: 'MEMBER100', discountPercent: 0, discountAmount: 100,
     remainingQuota: 20, expiryDate: '2026-03-31', validityDays: 15, memberOnly: true,
   },
   {
     id: 'p3', title: 'เดินทางคู่ ลดพิเศษ', description: 'จอง 2 ที่นั่งขึ้นไป รับส่วนลด 15%',
-    imageUrl: '', promoCode: 'DUO15', discountPercent: 15, discountAmount: 0,
+    imageUrl: '../assets/promotion/duo15.jpg', promoCode: 'DUO15', discountPercent: 15, discountAmount: 0,
     remainingQuota: 100, expiryDate: '2026-05-15', validityDays: 60, memberOnly: false,
   },
 ];

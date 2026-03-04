@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import StepIndicator from "./StepIndicator";
-import { Bus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowLeft, Bus } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 interface BookingLayoutProps {
   children: ReactNode;
@@ -11,6 +11,7 @@ interface BookingLayoutProps {
 }
 
 const BookingLayout = ({ children, currentStep = 1, showSteps = true, title }: BookingLayoutProps) => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -32,9 +33,12 @@ const BookingLayout = ({ children, currentStep = 1, showSteps = true, title }: B
 
       {/* Content */}
       <main className="flex-1 max-w-lg mx-auto w-full pb-8">
-        {title && (
-          <h2 className="text-lg font-bold px-4 pt-4 pb-2">{title}</h2>
-        )}
+        {title && (<div className="px-4 pt-4 pb-2 flex items-center gap-4">
+          <button  onClick={()=>{navigate(-1)}} className="p-1">  
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-lg font-bold">{title}</h2>
+        </div>)}
         {children}
       </main>
     </div>

@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
 import { Bus, Search, Tag, Ticket, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+import { mockPromotions } from "@/data/mockData";
 
 const Home = () => {
   return (
@@ -18,7 +21,7 @@ const Home = () => {
 
       <main className="p-4 space-y-6 max-w-lg mx-auto w-full">
         {/* Search */}
-        <div className="relative">
+        <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <input
             type="text"
@@ -59,7 +62,20 @@ const Home = () => {
               <Tag className="mr-2 h-4 w-4" />
               ดูโปรโมชั่นทั้งหมด
             </Button>
-          </Link>
+          </Link> <br /> <br />
+          <Swiper
+            slidesPerView={2.5} spaceBetween={3}
+            onSlideChange={() => console.log('slide change')}
+            onSwiper={(swiper) => console.log(swiper)}
+          >
+            {mockPromotions.map((promo) => (
+              <SwiperSlide className="text-left" key={promo.id}>
+                <Link to={`/promotions/${promo.id}`} key={promo.id}>
+                  <img src={promo.imageUrl} alt={promo.title} className=" object-cover rounded-xl mb-2" />
+                  <span className="m-3 text-sm" >{promo.title}</span>
+                </Link>
+              </SwiperSlide>))}
+          </Swiper>
         </section>
       </main>
     </div>
