@@ -13,6 +13,8 @@ import ETicket from "./pages/ETicket";
 import MyTickets from "./pages/MyTickets";
 import Promotions from "./pages/Promotions";
 import Profile from "./pages/Profile";
+import Points from "./pages/Points";
+import Wallet from "./pages/Wallet";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/my-tickets" element={<MyTickets />} />
           <Route path="/promotions" element={<Promotions />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/points" element={<Points />} />
+          <Route path="/wallet" element={<Wallet />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <BottomNav />
