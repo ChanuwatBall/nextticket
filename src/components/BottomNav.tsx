@@ -18,7 +18,7 @@ const BottomNav = () => {
   if (hiddenRoutes.includes(pathname)) return null;
 
   return (
-    <nav className="fixed bottom-0 w-full z-50 bg-card border-t border-border shadow-lg sm:hidden">
+    <nav className="fixed bottom-0 w-full z-50 bg-card border-t border-border shadow-lg sm:hidden" style={{zIndex:"99"}} >
       <div className="flex justify-around items-center h-16">
         {navItems.map(({ to, label, icon: Icon }) => {
           const active = pathname === to;
