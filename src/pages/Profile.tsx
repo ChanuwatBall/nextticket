@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const menuItems = [
   { label: "ตั๋วของฉัน", icon: Ticket, to: "/my-tickets" },
-  { label: "สะสมแต้ม", icon: Star, to: "#" },
-  { label: "กระเป๋าเงิน", icon: Wallet, to: "#" },
+  { label: "สะสมแต้ม", icon: Star, to: "/points" },
+  { label: "กระเป๋าเงิน", icon: Wallet, to: "/wallet" },
 ];
 
 const Profile = () => {
