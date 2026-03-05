@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Users, CalendarIcon, MapPin, Tag, Ticket, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,20 +11,42 @@ import { useBookingStore } from "@/store/bookingStore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@radix-ui/react-select"; 
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const Home = () => {
   const store = useBookingStore();
-    const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : undefined);
-    const [openOrigin, setOpenOrigin] = useState(false);
-    const [startpoint, setStartpoint] = useState("");
-    const [openDestination, setOpenDestination] = useState(false);
-    const [destination, setDestination] = useState("");
-    
-    const filteredOriginProvinces = useMemo(() => {
-      if (!store.routeId) return provinces;
-      return provinces.filter((p) => p.routeIds.includes(store.routeId));
-    }, [store.routeId]);
+  const navigate = useNavigate();
+  const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : undefined);
+  const [openOrigin, setOpenOrigin] = useState(false);
+  const [startpoint, setStartpoint] = useState("");
+  const [openDestination, setOpenDestination] = useState(false);
+  const [destination, setDestination] = useState("");
+  const [selectedRouteId, setSelectedRouteId] = useState("");
+
+  const filteredOriginProvinces = useMemo(() => {
+    if (!selectedRouteId) return provinces;
+    return provinces.filter((p) => p.routeIds.includes(selectedRouteId));
+  }, [selectedRouteId]);
+
+  const filteredDestProvinces = useMemo(() => {
+    if (!selectedRouteId) return provinces;
+    const originProvince = provinces.find(p => p.name === startpoint);
+    return provinces.filter((p) => p.routeIds.includes(selectedRouteId) && (!originProvince || p.id !== originProvince.id));
+  }, [selectedRouteId, startpoint]);
+
+  const handleBooking = () => {
+    // Set route
+    if (selectedRouteId) store.setRoute(selectedRouteId);
+    // Set origin province
+    const originP = provinces.find(p => p.name === startpoint);
+    if (originP) store.setOriginProvince(originP.id);
+    // Set destination province
+    const destP = provinces.find(p => p.name === destination);
+    if (destP) store.setDestinationProvince(destP.id);
+    // Set date
+    if (date) store.setTravelDate(format(date, "yyyy-MM-dd"));
+    navigate("/ticket");
+  };
     
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20">
@@ -47,11 +69,11 @@ const Home = () => {
            
            <div className="grid  " >
               <div className=" flex-shrink-0 flex " style={{width:"100%", overflowX:"scroll"}}>
-                 {routes.map((r) => (
-                  <button key={r.id}  >
-                    <Link to="/ticket"  className="block text-center bg-accent text-accent-foreground py-2 px-4 rounded-lg font-medium hover:bg-accent/80 transition-colors whitespace-nowrap mr-1">
+               {routes.map((r) => (
+                  <button key={r.id} onClick={() => setSelectedRouteId(r.id)}>
+                    <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", selectedRouteId === r.id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
                       {r.name}
-                    </Link>
+                    </span>
                   </button>
               ))}
               </div>
@@ -104,15 +126,15 @@ const Home = () => {
                        onBlur={() => setOpenDestination(false)}
                        className="w-full h-12   border-b border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring font-medium text-muted-foreground cursor-pointer px-3 py-2" 
                      /> 
-                 {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{zIndex:"9999"}} onClick={() => setOpenOrigin(false)}>
+                 {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{zIndex:"9999"}} onClick={() => setOpenDestination(false)}>
                    <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                     {filteredOriginProvinces.filter(p => p.name.includes(startpoint)).map((p) => (
+                     {filteredDestProvinces.filter(p => p.name.includes(destination)).map((p) => (
                       <li 
                         key={p.id} 
                         className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
                         onClick={() => {
-                          setStartpoint(p.name);
-                          setOpenOrigin(false);
+                          setDestination(p.name);
+                          setOpenDestination(false);
                         }}
                       >
                         {p.name}
@@ -157,7 +179,7 @@ const Home = () => {
         </div> 
               </div> 
  
-                <Button className="w-full h-14 text-lg font-bold mt-4" size="lg">
+                <Button onClick={handleBooking} className="w-full h-14 text-lg font-bold mt-4" size="lg">
                   <Ticket className="mr-2 h-5 w-5" />
                   จองตั๋วเลย
                 </Button>

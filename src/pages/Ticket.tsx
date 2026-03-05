@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 const Ticket = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
-  const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : undefined);
+  const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : store.travelDate === '' ? undefined : undefined);
 
   const filteredOriginProvinces = useMemo(() => {
     if (!store.routeId) return provinces;
