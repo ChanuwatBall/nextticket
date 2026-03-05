@@ -15,16 +15,38 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 
 const Home = () => {
   const store = useBookingStore();
-    const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : undefined);
-    const [openOrigin, setOpenOrigin] = useState(false);
-    const [startpoint, setStartpoint] = useState("");
-    const [openDestination, setOpenDestination] = useState(false);
-    const [destination, setDestination] = useState("");
-    
-    const filteredOriginProvinces = useMemo(() => {
-      if (!store.routeId) return provinces;
-      return provinces.filter((p) => p.routeIds.includes(store.routeId));
-    }, [store.routeId]);
+  const navigate = useNavigate();
+  const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : undefined);
+  const [openOrigin, setOpenOrigin] = useState(false);
+  const [startpoint, setStartpoint] = useState("");
+  const [openDestination, setOpenDestination] = useState(false);
+  const [destination, setDestination] = useState("");
+  const [selectedRouteId, setSelectedRouteId] = useState("");
+
+  const filteredOriginProvinces = useMemo(() => {
+    if (!selectedRouteId) return provinces;
+    return provinces.filter((p) => p.routeIds.includes(selectedRouteId));
+  }, [selectedRouteId]);
+
+  const filteredDestProvinces = useMemo(() => {
+    if (!selectedRouteId) return provinces;
+    const originProvince = provinces.find(p => p.name === startpoint);
+    return provinces.filter((p) => p.routeIds.includes(selectedRouteId) && (!originProvince || p.id !== originProvince.id));
+  }, [selectedRouteId, startpoint]);
+
+  const handleBooking = () => {
+    // Set route
+    if (selectedRouteId) store.setRoute(selectedRouteId);
+    // Set origin province
+    const originP = provinces.find(p => p.name === startpoint);
+    if (originP) store.setOriginProvince(originP.id);
+    // Set destination province
+    const destP = provinces.find(p => p.name === destination);
+    if (destP) store.setDestinationProvince(destP.id);
+    // Set date
+    if (date) store.setTravelDate(format(date, "yyyy-MM-dd"));
+    navigate("/ticket");
+  };
     
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20">
