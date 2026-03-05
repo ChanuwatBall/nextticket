@@ -126,15 +126,15 @@ const Home = () => {
                        onBlur={() => setOpenDestination(false)}
                        className="w-full h-12   border-b border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring font-medium text-muted-foreground cursor-pointer px-3 py-2" 
                      /> 
-                 {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{zIndex:"9999"}} onClick={() => setOpenOrigin(false)}>
+                 {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{zIndex:"9999"}} onClick={() => setOpenDestination(false)}>
                    <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                     {filteredOriginProvinces.filter(p => p.name.includes(startpoint)).map((p) => (
+                     {filteredDestProvinces.filter(p => p.name.includes(destination)).map((p) => (
                       <li 
                         key={p.id} 
                         className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
                         onClick={() => {
-                          setStartpoint(p.name);
-                          setOpenOrigin(false);
+                          setDestination(p.name);
+                          setOpenDestination(false);
                         }}
                       >
                         {p.name}
