@@ -1,6 +1,7 @@
-import { User, Ticket, Star, Wallet, ChevronRight, Bus } from "lucide-react";
+import { User, Ticket, Star, Wallet, ChevronRight, Bus, LogIn, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { label: "ตั๋วของฉัน", icon: Ticket, to: "/my-tickets" },
@@ -26,6 +27,20 @@ const Profile = () => {
           </div>
           <h2 className="text-lg font-bold">ผู้ใช้ทั่วไป</h2>
           <p className="text-sm text-muted-foreground">ยังไม่ได้เข้าสู่ระบบ</p>
+          <div className="flex gap-3 mt-4 w-full max-w-xs">
+            <Button asChild className="flex-1" size="lg">
+              <Link to="/login">
+                <LogIn className="h-4 w-4 mr-2" />
+                เข้าสู่ระบบ
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="flex-1" size="lg">
+              <Link to="/register">
+                <UserPlus className="h-4 w-4 mr-2" />
+                ลงทะเบียน
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Menu */}
