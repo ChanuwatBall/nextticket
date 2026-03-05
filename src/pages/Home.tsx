@@ -69,11 +69,11 @@ const Home = () => {
            
            <div className="grid  " >
               <div className=" flex-shrink-0 flex " style={{width:"100%", overflowX:"scroll"}}>
-                 {routes.map((r) => (
-                  <button key={r.id}  >
-                    <Link to="/ticket"  className="block text-center bg-accent text-accent-foreground py-2 px-4 rounded-lg font-medium hover:bg-accent/80 transition-colors whitespace-nowrap mr-1">
+               {routes.map((r) => (
+                  <button key={r.id} onClick={() => setSelectedRouteId(r.id)}>
+                    <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", selectedRouteId === r.id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
                       {r.name}
-                    </Link>
+                    </span>
                   </button>
               ))}
               </div>
