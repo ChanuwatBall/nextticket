@@ -16,6 +16,8 @@ import Promotions from "./pages/Promotions";
 import Profile from "./pages/Profile";
 import Points from "./pages/Points";
 import Wallet from "./pages/Wallet";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import PromotionDetail from "./pages/PromotionDetail";
