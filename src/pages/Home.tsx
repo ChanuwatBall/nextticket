@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Users, CalendarIcon, MapPin, Tag, Ticket, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,7 +11,7 @@ import { useBookingStore } from "@/store/bookingStore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@radix-ui/react-select"; 
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const Home = () => {
   const store = useBookingStore();
