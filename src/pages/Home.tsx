@@ -3,7 +3,7 @@ import { Users, CalendarIcon, MapPin, Tag, Ticket, UserCircle } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
+import 'swiper/swiper-bundle.css';
 import { mockPromotions, provinces, routes } from "@/data/mockData";  
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
