@@ -90,7 +90,7 @@ const Home = () => {
                        placeholder="เลือกต้นทาง" 
                        onFocus={() => setOpenOrigin(true)}
                        onChange={(e) => setStartpoint(e.target.value)}
-                       onBlur={() => setOpenOrigin(false)}
+                       onBlur={() => setTimeout(() => setOpenOrigin(false), 150)}
                        className="w-full h-12   border-b border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring font-medium text-muted-foreground cursor-pointer px-3 py-2" 
                      /> 
                  {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{zIndex:"9999"}} onClick={() => setOpenOrigin(false)}>
@@ -123,7 +123,7 @@ const Home = () => {
                        placeholder="เลือกปลายทาง" 
                        onFocus={() => setOpenDestination(true)}
                        onChange={(e) => setDestination(e.target.value)}
-                       onBlur={() => setOpenDestination(false)}
+                       onBlur={() => setTimeout(() => setOpenDestination(false), 150)}
                        className="w-full h-12   border-b border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring font-medium text-muted-foreground cursor-pointer px-3 py-2" 
                      /> 
                  {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{zIndex:"9999"}} onClick={() => setOpenDestination(false)}>
