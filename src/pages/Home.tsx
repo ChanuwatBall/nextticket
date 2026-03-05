@@ -179,7 +179,7 @@ const Home = () => {
         </div> 
               </div> 
  
-                <Button className="w-full h-14 text-lg font-bold mt-4" size="lg">
+                <Button onClick={handleBooking} className="w-full h-14 text-lg font-bold mt-4" size="lg">
                   <Ticket className="mr-2 h-5 w-5" />
                   จองตั๋วเลย
                 </Button>
