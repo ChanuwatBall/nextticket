@@ -91,7 +91,7 @@ const SeatSelection = () => {
                     if (cell === "DRIVER") {
                       return (
                         <div key={colIdx} className={cn("w-11 h-11 rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground", aisleClass)}>
-                          <Steering className="h-4 w-4" />
+                          <CircleDot className="h-4 w-4" />
                           <span className="text-[8px] leading-tight">{specialCellLabels[cell]}</span>
                         </div>
                       );
