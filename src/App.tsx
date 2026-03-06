@@ -34,11 +34,21 @@ const App = () => {
       })
       .then(() => {
         console.log("LIFF init succeeded");
-        liff.login();
-        liff.getProfile().then((profile) => {
-          console.log("User profile:", profile);
-          localStorage.setItem("userProfile", JSON.stringify(profile));
-        });
+        const isLoggedIn = liff.isLoggedIn();
+        if(!isLoggedIn){
+          liff.login();
+        } 
+        
+        const storedProfile = localStorage.getItem("userProfile");
+        if (storedProfile) {
+          console.log("Loaded user profile from localStorage:", JSON.parse(storedProfile));
+        } else {
+          console.log("No user profile found in localStorage");
+          liff.getProfile().then((profile) => {
+            console.log("User profile:", profile);
+            localStorage.setItem("userProfile", JSON.stringify(profile));
+          });
+        } 
       })
       .catch((e: Error) => {
         console.error("LIFF init failed", e);
