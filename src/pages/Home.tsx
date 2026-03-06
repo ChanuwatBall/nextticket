@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import "../css/Home.css";
 
 const Home = () => {
   const store = useBookingStore();
@@ -49,13 +50,10 @@ const Home = () => {
   };
     
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-20">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground px-4 py-3 flex items-start justify-between gap-3 shadow-md sticky top-0  z-50 pt-8" style={{height:"10rem"}}>
+    <div className="min-h-screen bg-background flex flex-col pb-20"> 
+      <header className="bg-primary text-primary-foreground px-4 py-3 flex items-start justify-between gap-3 shadow-md sticky top-0  z-50 pt-8 rounded-b-3xl " style={{height:"10rem"}}>
         <div className="flex items-center gap-2">
-         <h1 className="text-xl font-bold" > Booking your best trip</h1>
-          {/* <Bus className="h-6 w-6" />
-          <h1 className="text-lg font-bold tracking-tight">Nex Express</h1> */}
+         <h1 className="text-xl font-bold" > Booking your best trip</h1> 
         </div>
         <Link to="/profile">
           <UserCircle className="h-7 w-7" />
@@ -64,11 +62,10 @@ const Home = () => {
 
       <main className=" space-y-6 max-w-lg mx-auto w-full relative "  >
 
-        <div className="p-4 space-y-6 max-w-lg mx-auto w-full absolute " style={{width:"95%", left:"2.5%" , top:"-8vh", minHeight:"7rem", zIndex:51,}} > 
-        <div className="bg-white rounded-lg p-3   mb-4  text-lg" >
-           
+        <div className="p-4 space-y-6 max-w-lg mx-auto w-full absolute " style={{width:"100%",   minHeight:"7rem", zIndex:51,marginTop:"-10vh" }} > 
+        <div className="bg-white rounded-2xl p-3 mb-4  text-lg drop-shadow-xl " > 
            <div className="grid  " >
-              <div className=" flex-shrink-0 flex " style={{width:"100%", overflowX:"scroll"}}>
+              <div className="scrollbar flex-shrink-0 flex " style={{width:"100%", overflowX:"scroll"}}>
                {routes.map((r) => (
                   <button key={r.id} onClick={() => setSelectedRouteId(r.id)}>
                     <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", selectedRouteId === r.id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
@@ -80,10 +77,11 @@ const Home = () => {
               <div>
              
               <div className="space-y-1.5 mt-3">
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" /> ต้นทาง
+                <label className="text-sm font-medium text-muted-foreground ">
+                 ต้นทาง
                 </label>
-                <div className={cn("w-full h-12 justify-start font-normal relative ")}>
+                <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}>
+                   <MapPin className="h-3.5 w-3.5  text-muted-foreground" /> 
                      <input 
                        type="text"   
                        value={startpoint} 
@@ -113,10 +111,11 @@ const Home = () => {
               </div>
 
               <div className="space-y-1.5 mt-3">
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" /> ปลายทาง
+                <label className="text-sm font-medium text-muted-foreground  gap-1">
+                  ปลายทาง
                 </label>
-                <div className={cn("w-full h-12 justify-start font-normal relative ")}>
+                <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}>
+                  <MapPin className="h-3.5 w-3.5  text-muted-foreground" /> 
                      <input 
                        type="text"   
                        value={destination} 
@@ -152,7 +151,8 @@ const Home = () => {
                 <label className="text-sm font-medium text-muted-foreground">วันที่เดินทาง</label><br/>
                 <Popover  >
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full  h-12 justify-start font-normal", !date && "text-muted-foreground")}>
+                    <Button variant="ghost" className={cn("w-full  h-12 justify-start font-normal text-muted-foreground ")} 
+                    style={{borderBottom:"1px solid  #DDD", borderRadius:"0px", margin:"0px" , paddingLeft:"0px"}}  >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {date ? format(date, "PPP", { locale: th }) : "เลือกวันที่"}
                     </Button>
@@ -162,21 +162,21 @@ const Home = () => {
                   </PopoverContent>
                 </Popover>
               </div>  
-               <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" /> จำนวนผู้โดยสาร
-          </label>
-          <Select value={String(store.passengerCount)} onValueChange={(v) => store.setPassengerCount(Number(v))}>
-            <SelectTrigger className="h-12 [&>span]:hidden">
-              <SelectValue placeholder="เลือกจำนวนผู้โดยสาร" />
-            </SelectTrigger>
-            <SelectContent>
-              {[1, 2, 3, 4, 5, 6].map((n) => (
-                <SelectItem key={n} value={String(n)}>{n} คน</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div> 
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  จำนวนผู้โดยสาร
+                </label>
+                <Select  value={String(store.passengerCount)} onValueChange={(v) => store.setPassengerCount(Number(v))}>
+                  <SelectTrigger className="h-12 [&>span]:hidden border-none bg-transparent " style={{borderBottom:"1px solid  #DDD", borderRadius:"0px"}} >
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" /> <SelectValue placeholder="เลือกจำนวนผู้โดยสาร" />
+                  </SelectTrigger>
+                  <SelectContent style={{zIndex:"999"}} >
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n} คน</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div> 
               </div> 
  
                 <Button onClick={handleBooking} className="w-full h-14 text-lg font-bold mt-4" size="lg">
@@ -186,21 +186,7 @@ const Home = () => {
               
            </div>
         </div> 
-
-        {/* Search */}
-        {/* <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="ค้นหาปลายทางหรือสถานี"
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div> */}
-
-        {/* Quick Booking CTA */}
-       
-
-        {/* Popular Destinations */}
+ 
         <section>
           <h2 className="text-xl font-bold mb-3">ปลายทางยอดนิยม</h2>
           <div className="grid grid-cols-2 gap-3">

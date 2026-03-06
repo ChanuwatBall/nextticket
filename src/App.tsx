@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import liff from "@line/liff";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,8 +26,27 @@ import PromotionDetail from "./pages/PromotionDetail";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => {
+  useEffect(() => {
+    liff
+      .init({
+        liffId: import.meta.env.VITE_LIFF_ID,
+      })
+      .then(() => {
+        console.log("LIFF init succeeded");
+        liff.login();
+        liff.getProfile().then((profile) => {
+          console.log("User profile:", profile);
+          localStorage.setItem("userProfile", JSON.stringify(profile));
+        });
+      })
+      .catch((e: Error) => {
+        console.error("LIFF init failed", e);
+      });
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -53,6 +74,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
