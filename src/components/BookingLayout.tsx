@@ -15,7 +15,7 @@ const BookingLayout = ({ children, currentStep = 1, showSteps = true, title }: B
   return (
     <div className="min-h-screen bg-background flex flex-col">
      
-      <header className=" text-primary-foreground px-4 py-3  gap-3   sticky top-0 z-50">
+      <header className="text-primary-foreground px-4 py-3 gap-3 sticky top-0 z-50 bg-background">
         {/* <Link to="/" className="flex items-center gap-2">
           <Bus className="h-6 w-6" />
           <h1 className="text-lg font-bold tracking-tight">Nex Express</h1>
