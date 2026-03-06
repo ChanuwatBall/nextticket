@@ -2,9 +2,10 @@ import { useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore } from "@/store/bookingStore";
-import { generateSeats, type Seat, type SeatStatus } from "@/data/mockData";
+import { generateSeats, getBusLayout, isSpecialCell, type Seat, type SeatStatus, type BusLayout } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CircleDot } from "lucide-react";
 
 const statusColors: Record<SeatStatus, string> = {
   available: "bg-card border-2 border-primary/30 text-foreground hover:bg-primary/10 cursor-pointer",
@@ -13,12 +14,22 @@ const statusColors: Record<SeatStatus, string> = {
   selected: "bg-primary text-primary-foreground ring-2 ring-primary/40 cursor-pointer",
 };
 
+const specialCellLabels: Record<string, string> = {
+  DRIVER: "พขร.",
+  DOOR1: "ประตู 1",
+  DOOR2: "ประตู 2",
+  TOILET: "ห้องน้ำ",
+  EMERGENCY: "ประตูหนีไฟ",
+  STAIRS: "บันได",
+};
+
 const SeatSelection = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
-  const totalSeats = store.selectedTrip?.totalSeats ?? 40;
+  const trip = store.selectedTrip;
 
-  const initialSeats = useMemo(() => generateSeats(totalSeats), [totalSeats]);
+  const layout = useMemo(() => getBusLayout(trip?.busType ?? '', trip?.totalSeats ?? 40), [trip]);
+  const initialSeats = useMemo(() => generateSeats(layout), [layout]);
   const [seats, setSeats] = useState<Seat[]>(initialSeats);
 
   const selectedSeats = useMemo(() => seats.filter((s) => s.status === "selected"), [seats]);
@@ -40,12 +51,14 @@ const SeatSelection = () => {
     navigate("/passengers");
   };
 
-  const cols = 4;
-  const rows = Math.ceil(totalSeats / cols);
-
   return (
     <BookingLayout currentStep={3} title="เลือกที่นั่ง">
       <div className="px-4">
+        {/* Bus type label */}
+        <div className="text-center text-sm font-semibold text-muted-foreground mb-3">
+          {layout.name} — ชั้นเดียว
+        </div>
+
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs mb-4 flex-wrap">
           <div className="flex items-center gap-1.5">
@@ -61,18 +74,39 @@ const SeatSelection = () => {
 
         {/* Bus layout */}
         <div className="bg-card rounded-xl border border-border p-4 mb-4">
-          {/* Driver area */}
-          <div className="flex justify-end mb-4 text-xs text-muted-foreground">
-            <div className="bg-muted rounded px-3 py-1">คนขับ</div>
-          </div>
-
-          {/* Seats grid */}
           <div className="space-y-2">
-            {Array.from({ length: rows }, (_, r) => (
-              <div key={r} className="flex items-center justify-center gap-1.5">
-                {Array.from({ length: cols }, (_, c) => {
-                  const seat = seats.find((s) => s.row === r && s.col === c);
-                  if (!seat) return <div key={c} className="w-11 h-11" />;
+            {layout.rows.map((row, rowIdx) => (
+              <div key={rowIdx} className="flex items-center justify-center gap-1.5">
+                {row.map((cell, colIdx) => {
+                  // Aisle gap after col 1
+                  const aisleClass = colIdx === 1 ? "mr-4" : "";
+
+                  // Empty cell
+                  if (cell === null) {
+                    return <div key={colIdx} className={cn("w-11 h-11", aisleClass)} />;
+                  }
+
+                  // Special cell (driver, door, toilet, etc.)
+                  if (isSpecialCell(cell)) {
+                    if (cell === "DRIVER") {
+                      return (
+                        <div key={colIdx} className={cn("w-11 h-11 rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground", aisleClass)}>
+                          <CircleDot className="h-4 w-4" />
+                          <span className="text-[8px] leading-tight">{specialCellLabels[cell]}</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={colIdx} className={cn("w-11 h-11 rounded-lg bg-muted/60 flex items-center justify-center", aisleClass)}>
+                        <span className="text-[7px] text-muted-foreground text-center leading-tight px-0.5">{specialCellLabels[cell]}</span>
+                      </div>
+                    );
+                  }
+
+                  // Seat cell
+                  const seat = seats.find((s) => s.number === cell);
+                  if (!seat) return <div key={colIdx} className={cn("w-11 h-11", aisleClass)} />;
+
                   return (
                     <button
                       key={seat.id}
@@ -81,7 +115,7 @@ const SeatSelection = () => {
                       className={cn(
                         "w-11 h-11 rounded-lg text-xs font-bold transition-all",
                         statusColors[seat.status],
-                        c === 1 && "mr-4" // aisle gap
+                        aisleClass
                       )}
                     >
                       {seat.number}
