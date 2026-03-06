@@ -5,7 +5,7 @@ import { useBookingStore } from "@/store/bookingStore";
 import { generateSeats, getBusLayout, isSpecialCell, type Seat, type SeatStatus, type BusLayout } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Steering } from "lucide-react";
+import { CircleDot } from "lucide-react";
 
 const statusColors: Record<SeatStatus, string> = {
   available: "bg-card border-2 border-primary/30 text-foreground hover:bg-primary/10 cursor-pointer",
