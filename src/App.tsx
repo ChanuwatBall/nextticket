@@ -28,6 +28,12 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
+    // Only initialize LIFF if we are on the production URL specified in VITE_URL
+    if (!window.location.href.startsWith(import.meta.env.VITE_URL)) {
+      console.log("Not on production URL, skipping LIFF init");
+      return;
+    }
+
     liff
       .init({
         liffId: import.meta.env.VITE_LIFF_ID,
