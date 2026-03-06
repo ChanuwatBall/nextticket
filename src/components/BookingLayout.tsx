@@ -32,7 +32,7 @@ const BookingLayout = ({ children, currentStep = 1, showSteps = true, title }: B
 
       
       {/* Content */}
-      <main className="flex-1 max-w-lg mx-auto w-full pb-8 pt-2 bg-white" style={{zIndex:999}} >
+      <main className="flex-1 max-w-lg mx-auto w-full pb-8 pt-2 bg-white"  >
        {/* Step Indicator */}
       {showSteps && currentStep && (
         <div className=" border-b border-none pb-8" >

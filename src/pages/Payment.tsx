@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore } from "@/store/bookingStore";
 import { provinces, boardingPoints } from "@/data/mockData";
@@ -16,6 +17,9 @@ const PaymentPage = () => {
   const store = useBookingStore();
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
   const [processing, setProcessing] = useState(false);
+  const [qrData, setQrData] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -36,6 +40,39 @@ const PaymentPage = () => {
   const tripPrice = store.selectedTrip?.price ?? 0;
   const subtotal = tripPrice * store.selectedSeats.length;
   const total = Math.max(0, subtotal - store.discount);
+
+  useEffect(() => {
+    if (total > 0) {
+      setQrLoading(true);
+      setQrError(null);
+      axios.post('http://localhost:8081/api/payment/qr', { },{
+        params:{ amount: total}
+      })
+        .then(async (response) => {
+          console.log("QR Data:", response);
+          await getCharge(response.data.chargeId);
+          // setQrData(response.data);
+        })
+        .catch((err) => {
+          setQrError(err.message);
+        })
+        .finally(() => {
+          setQrLoading(false);
+        });
+    }
+  }, [total]);
+
+  const getCharge=(chargeId) => {
+    axios.get('http://localhost:8081/api/payment/transaction/'+chargeId )
+      .then((response) => {
+        console.log("Charge Status:", response);
+        let qrurl = response.data.charge.source.scannable_code.image.download_uri;
+        setQrData(qrurl);
+      })
+      .catch((err) => {
+        setQrError(err.message);
+      });
+  };
 
   const originName = provinces.find((p) => p.id === store.originProvinceId)?.name ?? "";
   const destName = provinces.find((p) => p.id === store.destinationProvinceId)?.name ?? "";
@@ -140,6 +177,26 @@ const PaymentPage = () => {
             </RadioGroup>
           </CardContent>
         </Card>
+
+        {/* QR Code Display */}
+        {store.paymentMethod === 'qr' && (
+          <Card>
+            <CardContent className="p-4 text-center">
+              <h3 className="font-bold text-base mb-3">สแกน QR Code เพื่อชำระเงิน</h3>
+              {qrLoading && <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />}
+              {qrError && <p className="text-destructive">Error loading QR code: {qrError}</p>}
+              {qrData && qrData && (
+                <img src={qrData} alt="QR Code for Payment" className="mx-auto max-w-xs" />
+              )}
+              {qrData && (
+                <div className="mt-3 text-sm text-muted-foreground">
+                  <p>Amount: ฿{qrData.amount}</p>
+                  <p>Status: {qrData.chargeStatus}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Button
           onClick={handlePay}
