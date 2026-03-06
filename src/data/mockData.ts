@@ -44,6 +44,20 @@ export interface Seat {
   floor: number;
 }
 
+export interface Promotion {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  promoCode: string;
+  discountPercent: number;
+  discountAmount: number;
+  remainingQuota: number;
+  expiryDate: string;
+  validityDays: number;
+  memberOnly: boolean;
+}
+
 // Each cell: seat label (e.g. "1A") or null (empty space)
 // Special strings: "DRIVER", "DOOR1", "DOOR2", "TOILET", "EMERGENCY", "STAIRS" are rendered as labels
 export interface BusLayout {
