@@ -75,9 +75,9 @@ const PaymentQRPage = () => {
     setQrError(null);
 
     // pick endpoint based on payment channel
-    let apiUrl = "/api/payment/qr";
-    if (sourceType === "alipay") apiUrl = "/api/payment/alipay-qr";
-    else if (sourceType === "wechat") apiUrl = "/api/payment/wechat-pay";
+    let apiUrl = "https://nextoa-api.andamantracking.dev/api/payment/qr";
+    if (sourceType === "alipay") apiUrl = "https://nextoa-api.andamantracking.dev/api/payment/alipay-qr";
+    else if (sourceType === "wechat") apiUrl = "https://nextoa-api.andamantracking.dev/api/payment/wechat-pay";
 
     axios
       .post(apiUrl, {}, { params: { amount: total } })
