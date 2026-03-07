@@ -11,6 +11,7 @@ import SearchResults from "./pages/SearchResults";
 import SeatSelection from "./pages/SeatSelection";
 import PassengerInfo from "./pages/PassengerInfo";
 import Payment from "./pages/Payment";
+import PaymentQR from "./pages/PaymentQR";
 import ETicket from "./pages/ETicket";
 import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
