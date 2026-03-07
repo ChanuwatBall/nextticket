@@ -75,6 +75,7 @@ const App = () => {
           <Route path="/seats" element={<SeatSelection />} />
           <Route path="/passengers" element={<PassengerInfo />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/payment/qr" element={<PaymentQR />} />
           <Route path="/e-ticket" element={<ETicket />} />
           <Route path="/my-tickets" element={<MyTickets />} />
           <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
