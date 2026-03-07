@@ -50,7 +50,7 @@ const PaymentPage = () => {
   }, [navigate, store.paymentMethod, selectedEWallet, total]);
 
   return (
-    <BookingLayout currentStep={5} title="ชำระเงิน">
+    <BookingLayout currentStep={5} title="ชำระเงิน" navto={() => navigate(-1)}>
       <div className="px-4 space-y-4">
         {/* Booking Summary */}
         <Card>

@@ -52,7 +52,7 @@ const Ticket = () => {
   };
 
   return (
-    <BookingLayout currentStep={1} title="จองตั๋วรถโดยสาร">
+    <BookingLayout currentStep={1} navto={() => navigate("/")} title="จองตั๋วรถโดยสาร">
       <div className="px-4 space-y-4">
         {/* Route */}
         <div className="space-y-1.5">

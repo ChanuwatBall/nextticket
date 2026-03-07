@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import liff from "@line/liff";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ const PaymentQRPage = () => {
     sourceType: "promptpay",
     total: 0,
   };
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isPollingRef = useRef(false);
 
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -44,18 +47,47 @@ const PaymentQRPage = () => {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
+  const handleDownloadQR = useCallback(() => {
+    if (!qrUrl) return;
+
+    // Check if in LIFF environment
+    if (liff.isInClient && liff.isInClient()) {
+      // Open in external browser
+      liff.openWindow({
+        url: qrUrl,
+        external: true,
+      });
+    } else {
+      // Download image normally
+      const link = document.createElement("a");
+      link.href = qrUrl;
+      link.download = `qr-code-${chargeId}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }, [qrUrl, chargeId]);
+
   // Create charge & get QR
   useEffect(() => {
     if (total <= 0) return;
     setQrLoading(true);
     setQrError(null);
 
+    // pick endpoint based on payment channel
+    let apiUrl = "/api/payment/qr";
+    if (sourceType === "alipay") apiUrl = "/api/payment/alipay-qr";
+    else if (sourceType === "wechat") apiUrl = "/api/payment/wechat-pay";
+
     axios
-      .post("http://localhost:8081/api/payment/qr", {}, { params: { amount: total, source_type: sourceType } })
+      .post(apiUrl, {}, { params: { amount: total } })
       .then(async (response) => {
+        console.log("Charge created:", response.data);
         const id = response.data.chargeId;
         setChargeId(id);
-        await fetchCharge(id);
+         setQrUrl(response.data.qrCodeUrl);
+         checkStatsInterval(id);
+        // await fetchCharge(id);
       })
       .catch((err) => {
         setQrError(err.message);
@@ -67,7 +99,8 @@ const PaymentQRPage = () => {
 
   const fetchCharge = async (id: string) => {
     try {
-      const response = await axios.get(`http://localhost:8081/api/payment/transaction/${id}`);
+      const response = await axios.get(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${id}`);
+      console.log("Charge details:", response.data);
       const charge = response.data.charge;
       const downloadUri = charge?.source?.scannable_code?.image?.download_uri;
       if (downloadUri) {
@@ -80,37 +113,53 @@ const PaymentQRPage = () => {
   };
 
   // Poll charge status every 3 seconds
-  useEffect(() => {
-    if (!chargeId || chargeStatus === "successful" || chargeStatus === "failed" || timeLeft === 0)
-      return;
+ const checkStatsInterval = useCallback((chargeId: string) => { 
+  if (!chargeId) return;
 
-    const interval = setInterval(async () => {
+  // กันการสร้าง interval ซ้ำ
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }
+
+ intervalRef.current = setInterval(async () => {
       try {
-        const response = await axios.get(`http://localhost:8081/api/payment/transaction/${chargeId}`);
-        const status = response.data.charge?.status;
-        setChargeStatus(status ?? "pending");
-
-        if (status === "successful") {
-          clearInterval(interval);
+        // const response = await axios.post(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${chargeId}`
+        const response = await axios.get(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${chargeId}`);
+        let  status =  "pending"; 
+        console.log(chargeId + " Polled charge status:", response.data );
+        if(response.data === null){
+          setChargeStatus("pending"); 
+        }else{
+            status = response.data.status;
+          setChargeStatus(status ?? "pending");
+        }
+        
+        status = status.toLowerCase();
+        if (status === "success") {
+          clearInterval(  intervalRef.current!);
           store.setPaymentStatus("success");
           store.setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
           setTimeout(() => navigate("/e-ticket"), 1500);
-        } else if (status === "failed" || status === "expired") {
-          clearInterval(interval);
+        } else if (status ===  "failed" || status === "expired") {
+          clearInterval(intervalRef.current!);
           store.setPaymentStatus("failed");
+          setTimeout(() => navigate("/e-ticket"), 1500);
         }
       } catch {
+        console.error("Error polling charge status");
         // ignore polling errors
       }
-    }, POLL_INTERVAL);
+    }, 3000);
+ 
 
-    return () => clearInterval(interval);
-  }, [chargeId, chargeStatus, timeLeft, navigate, store]);
+    return () => clearInterval( intervalRef.current!);
+  }, [chargeId, navigate, store]);
 
   // Time expired
   if (timeLeft === 0 && chargeStatus !== "successful") {
     return (
-      <BookingLayout currentStep={5} title="หมดเวลา" showSteps={false}>
+      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
         <div className="px-4 text-center py-16">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
           <h3 className="text-xl font-bold mb-2">หมดเวลาชำระเงิน</h3>
@@ -132,7 +181,7 @@ const PaymentQRPage = () => {
   // Payment successful
   if (chargeStatus === "successful") {
     return (
-      <BookingLayout currentStep={5} title="ชำระเงินสำเร็จ" showSteps={false}>
+      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินสำเร็จ" showSteps={false}>
         <div className="px-4 text-center py-16">
           <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
           <h3 className="text-xl font-bold mb-2">ชำระเงินสำเร็จ!</h3>
@@ -143,7 +192,7 @@ const PaymentQRPage = () => {
   }
 
   return (
-    <BookingLayout currentStep={5} title="สแกน QR ชำระเงิน" showSteps={false}>
+    <BookingLayout currentStep={5} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
       <div className="px-4 space-y-4">
         {/* Timer */}
         <div className="bg-destructive/10 rounded-lg p-3 flex items-center gap-2 text-sm">
@@ -156,10 +205,8 @@ const PaymentQRPage = () => {
 
         {/* QR Code */}
         <Card>
-          <CardContent className="p-6 text-center space-y-4">
-            <h3 className="font-bold text-base">สแกน QR Code เพื่อชำระเงิน</h3>
-            <p className="text-2xl font-bold text-primary">฿{total}</p>
-
+          <CardContent className="p-4 text-center space-y-4 " style={{border:"none"}}>
+           
             {qrLoading && (
               <div className="py-8">
                 <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
@@ -176,8 +223,13 @@ const PaymentQRPage = () => {
                   onClick={() => {
                     setQrError(null);
                     setQrLoading(true);
+
+                    let retryUrl = "/api/payment/qr";
+                    if (sourceType === "alipay") retryUrl = "/api/payment/alipay-qr";
+                    else if (sourceType === "wechat") retryUrl = "/api/payment/wechat-pay";
+
                     axios
-                      .post("http://localhost:8081/api/payment/qr", {}, { params: { amount: total, source_type: sourceType } })
+                      .post(retryUrl, {}, { params: { amount: total } })
                       .then(async (res) => {
                         const id = res.data.chargeId;
                         setChargeId(id);
@@ -193,19 +245,30 @@ const PaymentQRPage = () => {
             )}
 
             {qrUrl && !qrLoading && (
-              <div className="flex flex-col items-center gap-3">
-                <div className="bg-white p-4 rounded-xl border border-border shadow-sm">
-                  <img src={qrUrl} alt="QR Code for Payment" className="w-56 h-56 object-contain" />
-                </div>
+              <div className="flex flex-col items-center  ">
+                {/* <div className="bg-white p-4 rounded-xl border border-border shadow-sm"> */}
+                  <img src={qrUrl} alt="QR Code for Payment" className="w-72 object-contain" />
+                {/* </div> */}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                   <span>รอการชำระเงิน...</span>
                 </div>
               </div>
             )}
+             <h3 className="font-bold text-base">สแกน QR Code เพื่อชำระเงิน</h3>
+            <p className="text-2xl font-bold text-primary">฿{total}</p>
+
           </CardContent>
         </Card>
 
+        <Button
+          variant="outline"
+          onClick={handleDownloadQR}
+          disabled={!qrUrl || qrLoading}
+          className="w-full h-12  bg-primary text-white hover:bg-primary/90"
+        >
+          บันทึก QR Code
+        </Button>
         <Button
           variant="outline"
           onClick={() => navigate(-1)}
@@ -213,6 +276,7 @@ const PaymentQRPage = () => {
         >
           ยกเลิก
         </Button>
+        <div className="w-full h-32"></div>
       </div>
     </BookingLayout>
   );

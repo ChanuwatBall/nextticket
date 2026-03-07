@@ -8,9 +8,10 @@ interface BookingLayoutProps {
   currentStep?: number;
   showSteps?: boolean;
   title?: string;
+  navto:() => void ;
 }
 
-const BookingLayout = ({ children, currentStep = 1, showSteps = true, title }: BookingLayoutProps) => {
+const BookingLayout = ({ children, currentStep = 1, showSteps = true, title, navto }: BookingLayoutProps) => {
   const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -22,7 +23,7 @@ const BookingLayout = ({ children, currentStep = 1, showSteps = true, title }: B
           
         </Link> */}
          {title && (<div className="px-4 pt-4 pb-2 flex items-center gap-4 text-black">
-          <button  onClick={()=>{navigate(-1)}} className="p-1">  
+          <button  onClick={()=>{navto()}} className="p-1">  
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h2 className="text-lg font-bold">{title}</h2>
