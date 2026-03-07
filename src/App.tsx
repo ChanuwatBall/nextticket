@@ -11,6 +11,7 @@ import SearchResults from "./pages/SearchResults";
 import SeatSelection from "./pages/SeatSelection";
 import PassengerInfo from "./pages/PassengerInfo";
 import Payment from "./pages/Payment";
+import PaymentQR from "./pages/PaymentQR";
 import ETicket from "./pages/ETicket";
 import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
@@ -74,6 +75,7 @@ const App = () => {
           <Route path="/seats" element={<SeatSelection />} />
           <Route path="/passengers" element={<PassengerInfo />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/payment/qr" element={<PaymentQR />} />
           <Route path="/e-ticket" element={<ETicket />} />
           <Route path="/my-tickets" element={<MyTickets />} />
           <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
