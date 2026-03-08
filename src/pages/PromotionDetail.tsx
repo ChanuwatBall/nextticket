@@ -16,7 +16,7 @@ const   PromotionDetail = () => {
   const navigate = useNavigate();
 
   return ( promo ?
-      <BookingLayout showSteps={false} title="รายละเอียดโปรโมชั่น">
+      <BookingLayout showSteps={false} title="รายละเอียดโปรโมชั่น" navto={() => navigate(-1)}>
         <div className="px-4 space-y-4">
           <Card>
             <CardContent className="p-4 space-y-3">
@@ -74,7 +74,7 @@ const   PromotionDetail = () => {
           </Card>
         </div>
       </BookingLayout>:
-      <BookingLayout showSteps={false} title="รายละเอียดโปรโมชั่น">
+      <BookingLayout showSteps={false} title="รายละเอียดโปรโมชั่น" navto={() => navigate("/")}>
         <div className="px-4 py-12 text-center">
             <p className="text-muted-foreground">ไม่พบข้อมูลโปรโมชั่น</p>
             <Link to="/promotions" className="text-primary font-medium mt-2 inline-block">กลับหน้าส่งเสริมการขาย</Link>

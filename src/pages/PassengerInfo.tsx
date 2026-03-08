@@ -74,7 +74,7 @@ const PassengerInfoPage = () => {
   const total = Math.max(0, subtotal - store.discount);
 
   return (
-    <BookingLayout currentStep={4} title="ข้อมูลผู้โดยสาร">
+    <BookingLayout currentStep={4} title="ข้อมูลผู้โดยสาร"   navto={ () => navigate(-1) } >
       <div className="px-4 space-y-4">
         {passengers.map((p, i) => (
           <Card key={p.seatId}>

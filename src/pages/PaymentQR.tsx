@@ -16,6 +16,9 @@ const PaymentQRPage = () => {
   const location = useLocation();
   const store = useBookingStore();
 
+
+  const baseUrl = import.meta.env.VITE_API_URL;
+
   const { sourceType, total } = (location.state as { sourceType: string; total: number }) || {
     sourceType: "promptpay",
     total: 0,
@@ -75,9 +78,9 @@ const PaymentQRPage = () => {
     setQrError(null);
 
     // pick endpoint based on payment channel
-    let apiUrl = "https://nextoa-api.andamantracking.dev/api/payment/qr";
-    if (sourceType === "alipay") apiUrl = "https://nextoa-api.andamantracking.dev/api/payment/alipay-qr";
-    else if (sourceType === "wechat") apiUrl = "https://nextoa-api.andamantracking.dev/api/payment/wechat-pay";
+    let apiUrl = baseUrl+"/api/payment/qr";
+    if (sourceType === "alipay") apiUrl = baseUrl+"/api/payment/alipay-qr";
+    else if (sourceType === "wechat") apiUrl = baseUrl+"/api/payment/wechat-pay";
 
     axios
       .post(apiUrl, {}, { params: { amount: total } })

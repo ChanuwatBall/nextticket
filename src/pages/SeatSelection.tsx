@@ -52,7 +52,7 @@ const SeatSelection = () => {
   };
 
   return (
-    <BookingLayout currentStep={3} title="เลือกที่นั่ง">
+    <BookingLayout currentStep={3} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
       <div className="px-4">
         {/* Bus type label */}
         <div className="text-center text-sm font-semibold text-muted-foreground mb-3">

@@ -168,7 +168,7 @@ const Home = () => {
                 </label>
                 <Select  value={String(store.passengerCount)} onValueChange={(v) => store.setPassengerCount(Number(v))}>
                   <SelectTrigger className="h-12 [&>span]:hidden border-none bg-transparent " style={{borderBottom:"1px solid  #DDD", borderRadius:"0px"}} >
-                    <Users className="h-3.5 w-3.5 text-muted-foreground" /> <SelectValue placeholder="เลือกจำนวนผู้โดยสาร" />
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" /> <SelectValue placeholder="เลือกจำนวนผู้โดยสาร" className="text-black" />
                   </SelectTrigger>
                   <SelectContent style={{zIndex:"999"}} >
                     {[1, 2, 3, 4, 5, 6].map((n) => (
