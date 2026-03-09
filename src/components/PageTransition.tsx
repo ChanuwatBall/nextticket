@@ -14,12 +14,12 @@ const variants = {
   animate: {
     x: 0,
     opacity: 1,
-    transition: { type: "tween", ease: [0.25, 0.46, 0.45, 0.94], duration: 0.35 },
+    transition: { type: "tween" as const, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number], duration: 0.35 },
   },
   exit: (direction: string) => ({
     x: direction === "left" ? "-50%" : "50%",
     opacity: 0,
-    transition: { type: "tween", ease: [0.25, 0.46, 0.45, 0.94], duration: 0.25 },
+    transition: { type: "tween" as const, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number], duration: 0.25 },
   }),
 };
 
