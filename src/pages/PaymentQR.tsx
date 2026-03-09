@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import liff from "@line/liff";
 import BookingLayout from "@/components/BookingLayout";
+import PageTransition from "@/components/PageTransition";
 import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
