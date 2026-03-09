@@ -187,6 +187,7 @@ const PaymentQRPage = () => {
   // Payment successful
   if (chargeStatus === "successful") {
     return (
+      <PageTransition direction="left">
       <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินสำเร็จ" showSteps={false}>
         <div className="px-4 text-center py-16">
           <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
