@@ -180,6 +180,7 @@ const PaymentQRPage = () => {
           </Button>
         </div>
       </BookingLayout>
+      </PageTransition>
     );
   }
 
