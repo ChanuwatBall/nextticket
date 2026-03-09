@@ -163,6 +163,7 @@ const PaymentQRPage = () => {
   // Time expired
   if (timeLeft === 0 && chargeStatus !== "successful") {
     return (
+      <PageTransition direction="left">
       <BookingLayout currentStep={5} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
         <div className="px-4 text-center py-16">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
