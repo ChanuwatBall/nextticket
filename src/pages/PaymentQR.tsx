@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import liff from "@line/liff";
 import BookingLayout from "@/components/BookingLayout";
+import PageTransition from "@/components/PageTransition";
 import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -162,6 +163,7 @@ const PaymentQRPage = () => {
   // Time expired
   if (timeLeft === 0 && chargeStatus !== "successful") {
     return (
+      <PageTransition direction="left">
       <BookingLayout currentStep={5} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
         <div className="px-4 text-center py-16">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
@@ -178,12 +180,14 @@ const PaymentQRPage = () => {
           </Button>
         </div>
       </BookingLayout>
+      </PageTransition>
     );
   }
 
   // Payment successful
   if (chargeStatus === "successful") {
     return (
+      <PageTransition direction="left">
       <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินสำเร็จ" showSteps={false}>
         <div className="px-4 text-center py-16">
           <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
@@ -191,10 +195,12 @@ const PaymentQRPage = () => {
           <p className="text-muted-foreground">กำลังนำไปยังหน้า E-Ticket...</p>
         </div>
       </BookingLayout>
+      </PageTransition>
     );
   }
 
   return (
+    <PageTransition direction="left">
     <BookingLayout currentStep={5} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
       <div className="px-4 space-y-4">
         {/* Timer */}
@@ -282,6 +288,7 @@ const PaymentQRPage = () => {
         <div className="w-full h-32"></div>
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 
