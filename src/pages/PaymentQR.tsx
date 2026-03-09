@@ -200,6 +200,7 @@ const PaymentQRPage = () => {
   }
 
   return (
+    <PageTransition direction="left">
     <BookingLayout currentStep={5} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
       <div className="px-4 space-y-4">
         {/* Timer */}
