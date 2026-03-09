@@ -198,6 +198,7 @@ const PaymentPage = () => {
         </Button>
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 
