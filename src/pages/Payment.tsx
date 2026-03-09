@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
+import PageTransition from "@/components/PageTransition";
 import { useBookingStore } from "@/store/bookingStore";
 import { provinces, boardingPoints } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
