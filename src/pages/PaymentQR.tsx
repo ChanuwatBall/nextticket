@@ -195,6 +195,7 @@ const PaymentQRPage = () => {
           <p className="text-muted-foreground">กำลังนำไปยังหน้า E-Ticket...</p>
         </div>
       </BookingLayout>
+      </PageTransition>
     );
   }
 
