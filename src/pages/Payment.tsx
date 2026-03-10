@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
+import PageTransition from "@/components/PageTransition";
 import { useBookingStore } from "@/store/bookingStore";
 import { provinces, boardingPoints } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ const PaymentPage = () => {
   }, [navigate, store.paymentMethod, selectedEWallet, total]);
 
   return (
+    <PageTransition direction="left">
     <BookingLayout currentStep={5} title="ชำระเงิน" navto={() => navigate(-1)}>
       <div className="px-4 space-y-4">
         {/* Booking Summary */}
@@ -196,6 +198,7 @@ const PaymentPage = () => {
         </Button>
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 

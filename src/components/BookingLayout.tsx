@@ -8,7 +8,7 @@ interface BookingLayoutProps {
   currentStep?: number;
   showSteps?: boolean;
   title?: string;
-  navto:() => void ;
+  navto?: () => void;
 }
 
 const BookingLayout = ({ children, currentStep = 1, showSteps = true, title, navto }: BookingLayoutProps) => {
