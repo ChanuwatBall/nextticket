@@ -77,6 +77,7 @@ const SearchResults = () => {
         )}
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 

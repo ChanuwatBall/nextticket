@@ -151,6 +151,7 @@ const SeatSelection = () => {
         </Button>
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 

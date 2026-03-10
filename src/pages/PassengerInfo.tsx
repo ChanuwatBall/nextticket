@@ -169,6 +169,7 @@ const PassengerInfoPage = () => {
         </Button>
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 
