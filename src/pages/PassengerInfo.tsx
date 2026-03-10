@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PageTransition from "@/components/PageTransition";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore, type PassengerInfo } from "@/store/bookingStore";
