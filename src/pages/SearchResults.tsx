@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import PageTransition from "@/components/PageTransition";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore } from "@/store/bookingStore";
 import { mockTrips, provinces } from "@/data/mockData";
