@@ -29,6 +29,7 @@ const SearchResults = () => {
   };
 
   return (
+    <PageTransition>
     <BookingLayout currentStep={2} title="เลือกเที่ยวรถ" navto={() => navigate(-1)}>
       <div className="px-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
