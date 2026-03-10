@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PageTransition from "@/components/PageTransition";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore, type PassengerInfo } from "@/store/bookingStore";
@@ -74,6 +75,7 @@ const PassengerInfoPage = () => {
   const total = Math.max(0, subtotal - store.discount);
 
   return (
+    <PageTransition>
     <BookingLayout currentStep={4} title="ข้อมูลผู้โดยสาร"   navto={ () => navigate(-1) } >
       <div className="px-4 space-y-4">
         {passengers.map((p, i) => (
@@ -167,6 +169,7 @@ const PassengerInfoPage = () => {
         </Button>
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 

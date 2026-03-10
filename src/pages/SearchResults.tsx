@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import PageTransition from "@/components/PageTransition";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore } from "@/store/bookingStore";
 import { mockTrips, provinces } from "@/data/mockData";
@@ -28,6 +29,7 @@ const SearchResults = () => {
   };
 
   return (
+    <PageTransition>
     <BookingLayout currentStep={2} title="เลือกเที่ยวรถ" navto={() => navigate(-1)}>
       <div className="px-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
@@ -75,6 +77,7 @@ const SearchResults = () => {
         )}
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 

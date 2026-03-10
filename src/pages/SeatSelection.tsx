@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import PageTransition from "@/components/PageTransition";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore } from "@/store/bookingStore";
@@ -52,6 +53,7 @@ const SeatSelection = () => {
   };
 
   return (
+    <PageTransition>
     <BookingLayout currentStep={3} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
       <div className="px-4">
         {/* Bus type label */}
@@ -149,6 +151,7 @@ const SeatSelection = () => {
         </Button>
       </div>
     </BookingLayout>
+    </PageTransition>
   );
 };
 
