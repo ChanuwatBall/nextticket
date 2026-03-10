@@ -7,6 +7,8 @@ import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Timer, AlertCircle, CheckCircle2 } from "lucide-react";
+import { createCharge, getCharge, getTransactionById } from "@/services/api";
+import { tr } from "date-fns/locale";
 
 const TIMER_SECONDS = 15 * 60; // 15 minutes
 const POLL_INTERVAL = 3000; // 3 seconds
@@ -76,33 +78,26 @@ const PaymentQRPage = () => {
     if (total <= 0) return;
     setQrLoading(true);
     setQrError(null);
-
-    // pick endpoint based on payment channel
-    let apiUrl = baseUrl+"/api/payment/qr";
-    if (sourceType === "alipay") apiUrl = baseUrl+"/api/payment/alipay-qr";
-    else if (sourceType === "wechat") apiUrl = baseUrl+"/api/payment/wechat-pay";
-
-    axios
-      .post(apiUrl, {}, { params: { amount: total } })
-      .then(async (response) => {
-        console.log("Charge created:", response.data);
+ 
+    const createnNewCharge=async ()=>{
+      try{ 
+        const response =  await createCharge(total,sourceType  )
         const id = response.data.chargeId;
         setChargeId(id);
-         setQrUrl(response.data.qrCodeUrl);
-         checkStatsInterval(id);
-        // await fetchCharge(id);
-      })
-      .catch((err) => {
+        setQrUrl(response.data.qrCodeUrl);
+        checkStatsInterval(id);
+      }catch(err:any){
         setQrError(err.message);
-      })
-      .finally(() => {
+      }finally{
         setQrLoading(false);
-      });
+      }
+    } 
+    createnNewCharge();
   }, [total, sourceType]);
 
   const fetchCharge = async (id: string) => {
     try {
-      const response = await axios.get(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${id}`);
+      const response = await getTransactionById(id); //await axios.get(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${id}`);
       console.log("Charge details:", response.data);
       const charge = response.data.charge;
       const downloadUri = charge?.source?.scannable_code?.image?.download_uri;
@@ -128,7 +123,7 @@ const PaymentQRPage = () => {
  intervalRef.current = setInterval(async () => {
       try {
         // const response = await axios.post(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${chargeId}`
-        const response = await axios.get(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${chargeId}`);
+        const response = await  getCharge(chargeId);
         let  status =  "pending"; 
         console.log(chargeId + " Polled charge status:", response.data );
         if(response.data === null){
