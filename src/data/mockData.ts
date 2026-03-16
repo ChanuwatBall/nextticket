@@ -1,70 +1,29 @@
-export interface Route {
-  id: string;
-  name: string;
-  nameEn: string;
-}
+/**
+ * mockData.ts
+ *
+ * Re-exports shared types from api.ts for backward compatibility.
+ * Static mock data ยังคงอยู่เพื่อใช้ระหว่าง development / fallback
+ * เมื่อเชื่อมต่อ API จริงแล้ว ให้เรียกผ่าน services/api.ts แทน
+ */
 
-export interface Province {
-  id: string;
-  name: string;
-  nameEn: string;
-  routeIds: string[];
-}
+// ─────────────────────────────────────────────
+// Re-export types จาก api.ts (Single source of truth)
+// ─────────────────────────────────────────────
+export type {
+  Route,
+  Province,
+  BoardingPoint,
+  Trip,
+  SeatStatus,
+  Seat,
+  BusLayout,
+  Promotion,
+} from "@/services/api";
 
-export interface BoardingPoint {
-  id: string;
-  name: string;
-  nameEn: string;
-  provinceId: string;
-}
-
-export interface Trip {
-  id: string;
-  routeId: string;
-  originProvinceId: string;
-  destinationProvinceId: string;
-  departureTime: string;
-  arrivalTime: string;
-  price: number;
-  availableSeats: number;
-  totalSeats: number;
-  tripType: string;
-  busType: string;
-  date: string;
-}
-
-export type SeatStatus = 'available' | 'booked' | 'unavailable' | 'selected';
-
-export interface Seat {
-  id: string;
-  number: string;
-  row: number;
-  col: number;
-  status: SeatStatus;
-  floor: number;
-}
-
-export interface Promotion {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  promoCode: string;
-  discountPercent: number;
-  discountAmount: number;
-  remainingQuota: number;
-  expiryDate: string;
-  validityDays: number;
-  memberOnly: boolean;
-}
-
-// Each cell: seat label (e.g. "1A") or null (empty space)
-// Special strings: "DRIVER", "DOOR1", "DOOR2", "TOILET", "EMERGENCY", "STAIRS" are rendered as labels
-export interface BusLayout {
-  id: string;
-  name: string;
-  rows: (string | null)[][]; // each row has 4 columns: [A, B, C, D]
-}
+// ─────────────────────────────────────────────
+// Bus Layout Helpers (client-side only)
+// ─────────────────────────────────────────────
+import type { BusLayout, SeatStatus, Seat } from "@/services/api";
 
 const SPECIAL_CELLS = ['DRIVER', 'DOOR1', 'DOOR2', 'TOILET', 'EMERGENCY', 'STAIRS'];
 
@@ -135,6 +94,12 @@ export const generateSeats = (layout: BusLayout): Seat[] => {
   });
   return seats;
 };
+
+// ─────────────────────────────────────────────
+// Static Mock Data (Fallback / Dev)
+// TODO: Replace usage in pages with API calls
+// ─────────────────────────────────────────────
+import type { Route, Province, BoardingPoint, Trip, Promotion } from "@/services/api";
 
 export const routes: Route[] = [
   { id: 'southern', name: 'สายใต้', nameEn: 'Southern Line' },
