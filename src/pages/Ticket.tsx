@@ -5,17 +5,32 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { routes, provinces, boardingPoints } from "@/data/mockData";
+// import { routes, provinces, boardingPoints } from "@/data/mockData";
 import { useBookingStore } from "@/store/bookingStore";
 import { CalendarIcon, MapPin, Users, Search } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { boardingPoints } from "@/data/mockData";
+import { getRoutes, getProvinces } from "@/services/api";
+import { useQuery } from "@tanstack/react-query";
 
 const Ticket = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
   const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : store.travelDate === '' ? undefined : undefined);
+
+
+  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
+    queryKey: ['routes'],
+    queryFn: () => getRoutes().then(res => res.data),
+  });
+
+  const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
+    queryKey: ['provinces', store.routeId],
+    queryFn: () => getProvinces(store.routeId).then(res => res.data),
+  });
+
 
   const filteredOriginProvinces = useMemo(() => {
     if (!store.routeId) return provinces;
