@@ -309,9 +309,11 @@ export const getBoardingPoints = (provinceId?: string) =>
 // ─────────────────────────────────────────────
 
 /** GET /trips — ค้นหาเที่ยวรถ */
-export const searchTrips = (params: TripSearchParams) =>
-  http.get<Trip[]>("/trips", { params });
-
+// export const searchTrips = (params: TripSearchParams) =>
+//   http.get<Trip[]>("/trips", { params });
+export const searchTrips = async (body) => {
+  return await http.post<Trip[]>("/trips", body, {})
+}
 /** GET /trips/:id — ดึงข้อมูลเที่ยวรถเดียว */
 export const getTripById = (tripId: string) =>
   http.get<Trip>(`/trips/${tripId}`);
@@ -367,10 +369,10 @@ const sourceTypeToPath = (sourceType: PaymentSourceType) => {
 };
 
 /** POST /payment/:type — สร้าง QR charge สำหรับชำระเงิน */
-export const createCharge = (total: number, sourceType: PaymentSourceType) =>
+export const createCharge = (total: number, sourceType: PaymentSourceType, bookingDetail: any) =>
   http.post<CreateChargeResponse>(
     `/payment/${sourceTypeToPath(sourceType)}`,
-    {},
+    bookingDetail,
     { params: { amount: total } }
   );
 
