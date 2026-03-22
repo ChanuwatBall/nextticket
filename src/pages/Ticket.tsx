@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,8 @@ import { CalendarIcon, MapPin, Users, Search } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { boardingPoints } from "@/data/mockData";
-import { getRoutes, getProvinces } from "@/services/api";
+// import { boardingPoints } from "@/data/mockData";
+import { getRoutes, getProvinces, Province, Route, getBoardingPoints, BoardingPoint } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 
 const Ticket = () => {
@@ -20,36 +20,52 @@ const Ticket = () => {
   const store = useBookingStore();
   const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : store.travelDate === '' ? undefined : undefined);
 
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [routes, setRoute] = useState<Route[]>([]);
+  const [boardingPoints, setBoardingPoints] = useState<BoardingPoint[]>([]);
+  // const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
+  //   queryKey: ['routes'],
+  //   queryFn: () => getRoutes().then(res => res.data),
+  // });
 
-  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
-    queryKey: ['routes'],
-    queryFn: () => getRoutes().then(res => res.data),
-  });
+  // const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
+  //   queryKey: ['provinces', store.routeId],
+  //   queryFn: () => getProvinces(store.routeId).then(res => res.data),
+  // });
 
-  const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
-    queryKey: ['provinces', store.routeId],
-    queryFn: () => getProvinces(store.routeId).then(res => res.data),
-  });
+
+  useEffect(() => {
+    const conf = async () => {
+      const res = await getProvinces()
+      setProvinces(res)
+      const res2 = await getRoutes().then(res => res.data)
+      setRoute(res2)
+      const gp = await getBoardingPoints()
+      console.log("getBoardingPoints", gp)
+      setBoardingPoints(gp)
+    }
+    conf()
+  }, [])
 
 
   const filteredOriginProvinces = useMemo(() => {
     if (!store.routeId) return provinces;
     return provinces.filter((p) => p.routeIds.includes(store.routeId));
-  }, [store.routeId]);
+  }, [store.routeId, provinces]);
 
   const filteredDestProvinces = useMemo(() => {
     if (!store.routeId) return provinces;
     return provinces.filter((p) => p.routeIds.includes(store.routeId) && p.id !== store.originProvinceId);
-  }, [store.routeId, store.originProvinceId]);
+  }, [store.routeId, store.originProvinceId, provinces]);
 
   const originBoardingPoints = useMemo(
     () => boardingPoints.filter((bp) => bp.provinceId === store.originProvinceId),
-    [store.originProvinceId]
+    [store.originProvinceId, provinces, boardingPoints]
   );
 
   const destBoardingPoints = useMemo(
     () => boardingPoints.filter((bp) => bp.provinceId === store.destinationProvinceId),
-    [store.destinationProvinceId]
+    [store.destinationProvinceId, provinces, boardingPoints]
   );
 
   const canSearch =

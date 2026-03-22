@@ -6,24 +6,65 @@ import { useBookingStore } from "@/store/bookingStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin, Users, Bus } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getProvinces, searchTrips } from "@/services/api";
+import { getProvinces, Province, searchTrips, Trip } from "@/services/api";
 
 const SearchResults = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+  const [originName, setOriginName] = useState<string>("");
+  const [destName, setDestName] = useState<string>("");
 
-  const { data: trips = [], isLoading: isLoadingTrips } = useQuery({
-    queryKey: ['trips'],
-    queryFn: () => searchTrips({
-      routeId: store.routeId,
-      originProvinceId: store.originProvinceId,
-      destinationProvinceId: store.destinationProvinceId,
-      date: store.travelDate,
-      passengerCount: store.passengerCount
-    }).then(res => res.data),
-  });
+  // const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
+  //   queryKey: ['provinces', store.routeId],
+  //   queryFn: () => getProvinces(store.routeId),
+  // });
+
+  // const originName = useMemo(() =>
+  //   provinces.find((p) => p.id === store.originProvinceId)?.name ?? "",
+  //   [provinces, store.originProvinceId]
+  // );
+
+  // const destName = useMemo(() =>
+  //   provinces.find((p) => p.id === store.destinationProvinceId)?.name ?? "",
+  //   [provinces, store.destinationProvinceId]
+  // );
+
+  useEffect(() => {
+    const conf = async () => {
+      console.log("destination ", store.destinationProvinceId)
+      setIsLoadingTrips(true)
+      const prnc = await getProvinces(store.routeId)
+      setProvinces(prnc)
+      setOriginName(prnc.find((p) => p.id === store.originProvinceId)?.name ?? "")
+      setDestName(prnc.find((p) => p.id === store.destinationProvinceId)?.name ?? "")
+      const res = await searchTrips({
+        routeId: store.routeId,
+        originProvinceId: store.originProvinceId,
+        destinationProvinceId: store.destinationProvinceId,
+        date: store.travelDate,
+        passengerCount: store.passengerCount
+      }).then(res => res.data)
+      setTrips(res)
+      setIsLoadingTrips(false)
+    }
+    conf()
+
+  }, [])
+  // const { data: trips = [], isLoading: isLoadingTrips } = useQuery({
+  //   queryKey: ['trips'],
+  //   queryFn: () => searchTrips({
+  //     routeId: store.routeId,
+  //     originProvinceId: store.originProvinceId,
+  //     destinationProvinceId: store.destinationProvinceId,
+  //     date: store.travelDate,
+  //     passengerCount: store.passengerCount
+  //   }).then(res => res.data),
+  // });
 
   // const trips = useMemo(() => {
   //   return mockTrips.filter(
@@ -33,13 +74,7 @@ const SearchResults = () => {
   //   );
   // }, [store.originProvinceId, store.destinationProvinceId]);
 
-  const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
-    queryKey: ['provinces', store.routeId],
-    queryFn: () => getProvinces(store.routeId).then(res => res.data),
-  });
-  const originName = provinces.find((p) => p.id === store.originProvinceId)?.name ?? "";
-  const destName = provinces.find((p) => p.id === store.destinationProvinceId)?.name ?? "";
-
+  //
   const handleSelectTrip = (trip: typeof trips[0]) => {
     store.setSelectedTrip(trip);
     navigate("/seats");

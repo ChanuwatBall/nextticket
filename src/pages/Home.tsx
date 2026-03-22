@@ -6,7 +6,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/swiper-bundle.css';
 // import { mockPromotions, provinces, routes } from "@/data/mockData";
 import { format } from "date-fns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBookingStore } from "@/store/bookingStore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { th } from "date-fns/locale";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import "../css/Home.css";
 import { mockPromotions } from "@/data/mockData";
-import { getRoutes, getProvinces, getPromotions } from "@/services/api";
+import { getRoutes, getProvinces, getPromotions, Province } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 
 const Home = () => {
@@ -26,6 +26,7 @@ const Home = () => {
   const [openDestination, setOpenDestination] = useState(false);
   const [destination, setDestination] = useState("");
   const [selectedRouteId, setSelectedRouteId] = useState("");
+  const [provinces, setProvinces] = useState<Province[]>([]);
 
   // API Queries
   const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
@@ -33,26 +34,24 @@ const Home = () => {
     queryFn: () => getRoutes().then(res => res.data),
   });
 
-  const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
-    queryKey: ['provinces', selectedRouteId],
-    queryFn: () => getProvinces(selectedRouteId).then(res => res.data),
-  });
+  // const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
+  //   queryKey: ['provinces', selectedRouteId],
+  //   queryFn: () => getProvinces(selectedRouteId).then(res => res.data),
+  // });
 
   const { data: promotions = [], isLoading: isLoadingPromotions } = useQuery({
     queryKey: ['promotions'],
     queryFn: () => getPromotions().then(res => res.data),
   });
 
-  const filteredOriginProvinces = useMemo(() => {
-    if (!selectedRouteId) return provinces;
-    return provinces.filter((p) => p.routeIds.includes(selectedRouteId));
-  }, [selectedRouteId]);
 
   const filteredDestProvinces = useMemo(() => {
+    console.log("filteredDestProvinces", provinces)
+    console.log("selectedRouteId", selectedRouteId)
     if (!selectedRouteId) return provinces;
     const originProvince = provinces.find(p => p.name === startpoint);
     return provinces.filter((p) => p.routeIds.includes(selectedRouteId) && (!originProvince || p.id !== originProvince.id));
-  }, [selectedRouteId, startpoint]);
+  }, [selectedRouteId, startpoint, provinces]);
 
   const handleBooking = () => {
     // Set route
@@ -67,6 +66,21 @@ const Home = () => {
     if (date) store.setTravelDate(format(date, "yyyy-MM-dd"));
     navigate("/ticket");
   };
+
+  useEffect(() => {
+    const conf = async () => {
+      const res = await getProvinces()
+      setProvinces(res)
+    }
+    conf()
+  }, [])
+  const filteredOriginProvinces = useMemo(() => {
+    if (!selectedRouteId) {
+      console.log("provinces ", provinces)
+      return provinces;
+    }
+    return provinces.filter((p) => p.routeIds.includes(selectedRouteId));
+  }, [selectedRouteId, provinces]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20">
@@ -186,7 +200,7 @@ const Home = () => {
                     จำนวนผู้โดยสาร
                   </label>
                   <Select value={String(store.passengerCount)} onValueChange={(v) => store.setPassengerCount(Number(v))}>
-                    <SelectTrigger className="h-12 [&>span]:hidden border-none bg-transparent " style={{ borderBottom: "1px solid  #DDD", borderRadius: "0px" }} >
+                    <SelectTrigger className="h-12 border-none bg-transparent " style={{ borderBottom: "1px solid  #DDD", borderRadius: "0px" }} >
                       <Users className="h-3.5 w-3.5 text-muted-foreground" /> <SelectValue placeholder="เลือกจำนวนผู้โดยสาร" className="text-black" />
                     </SelectTrigger>
                     <SelectContent style={{ zIndex: "999" }} >

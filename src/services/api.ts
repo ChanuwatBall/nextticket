@@ -297,12 +297,34 @@ export const getRoutes = () =>
   http.get<Route[]>("/routes");
 
 /** GET /provinces?routeId=xxx — ดึงจังหวัดตามเส้นทาง */
-export const getProvinces = (routeId?: string) =>
-  http.get<Province[]>("/provinces", { params: { routeId } });
+// export const getProvinces = (routeId?: string) =>
+//   http.get<Province[]>("/provinces", { params: { routeId } });
+
+export const getProvinces = async (routeId?: string) => {
+  // return await http.get<Province[]>("/provinces", { params: { routeId } });
+  const response = await http.get("/provinces", {
+    params: routeId && {
+      routeId: routeId
+    }
+  })
+  console.log("getProvinces response ", response.data)
+  return response.data
+}
 
 /** GET /boarding-points?provinceId=xxx — ดึงจุดขึ้น/ลงรถตามจังหวัด */
-export const getBoardingPoints = (provinceId?: string) =>
-  http.get<BoardingPoint[]>("/boarding-points", { params: { provinceId } });
+// export const getBoardingPoints = (provinceId?: string) =>
+//   http.get<BoardingPoint[]>("/boarding-points", { params: { provinceId } });
+
+export const getBoardingPoints = async (provinceId?: string) => {
+  // return await http.get<Province[]>("/provinces", { params: { routeId } });
+  const response = await http.get("/boarding-points", {
+    params: provinceId && {
+      provinceId: provinceId
+    }
+  })
+  console.log("getBoardingPoints response ", response.data)
+  return response.data
+}
 
 // ─────────────────────────────────────────────
 // API — Trip (Search)
@@ -383,6 +405,10 @@ export const getTransactionById = (id: string) =>
 /** GET /payment/transaction/:chargeId — ดึงสถานะการชำระเงิน (polling) */
 export const getCharge = (chargeId: string) =>
   http.get<ChargeStatusResponse>(`/payment/transaction/${chargeId}`);
+
+/** POST /payment/cancel/:chargeId — ยกเลิกรายการชำระเงิน */
+export const cancelCharge = (chargeId: string) =>
+  http.post(`/payment/cancel/${chargeId}`);
 
 // ─────────────────────────────────────────────
 // API — Auth

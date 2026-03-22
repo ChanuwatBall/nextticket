@@ -8,7 +8,17 @@ import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Timer, AlertCircle, CheckCircle2 } from "lucide-react";
-import { createCharge, getCharge, getTransactionById } from "@/services/api";
+import { createCharge, getCharge, getTransactionById, cancelCharge } from "@/services/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { tr } from "date-fns/locale";
 
 const TIMER_SECONDS = 15 * 60; // 15 minutes
@@ -35,6 +45,7 @@ const PaymentQRPage = () => {
   const [qrError, setQrError] = useState<string | null>(null);
   const [chargeId, setChargeId] = useState<string | null>(null);
   const [chargeStatus, setChargeStatus] = useState<string>("pending");
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   // Countdown timer
   useEffect(() => {
@@ -155,6 +166,17 @@ const PaymentQRPage = () => {
     return () => clearInterval(intervalRef.current!);
   }, [chargeId, navigate, store]);
 
+  const handleCancelCharge = async () => {
+    if (chargeId) {
+      try {
+        await cancelCharge(chargeId);
+      } catch (e) {
+        console.error("Cancel charge error:", e);
+      }
+    }
+    clearInterval(intervalRef.current!);
+    navigate(-1);
+  }
   // Time expired
   if (timeLeft === 0 && chargeStatus !== "successful") {
     return (
@@ -275,13 +297,33 @@ const PaymentQRPage = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={() => { clearInterval(intervalRef.current!); navigate(-1) }}
+            onClick={() => setIsCancelDialogOpen(true)}
             className="w-full h-12"
           >
             ยกเลิก
           </Button>
           <div className="w-full h-32"></div>
         </div>
+
+        <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>ยกเลิกรายการชำระเงิน?</AlertDialogTitle>
+              <AlertDialogDescription>
+                คุณต้องการยกเลิกรายการชำระเงินนี้และกลับไปยังหน้าก่อนหน้าใช่หรือไม่?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>ไม่ยกเลิก</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCancelCharge}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                ยืนยันการยกเลิก
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </BookingLayout>
     </PageTransition>
   );
