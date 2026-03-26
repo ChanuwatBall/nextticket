@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
-import liff from "@line/liff";
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import BookingLayout from "@/components/BookingLayout";
 import PageTransition from "@/components/PageTransition";
 import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Timer, AlertCircle, CheckCircle2 } from "lucide-react";
-import { createCharge, getCharge, getTransactionById, cancelCharge } from "@/services/api";
+import { createCharge, cancelCharge } from "@/services/api";
+import liff from "@line/liff";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,25 +21,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { tr } from "date-fns/locale";
 
 const TIMER_SECONDS = 15 * 60; // 15 minutes
-const POLL_INTERVAL = 3000; // 3 seconds
 
 const PaymentQRPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const store = useBookingStore();
 
-
+  // ดึง Base URL ของ API (เช่น http://localhost:8080)
   const baseUrl = import.meta.env.VITE_API_URL;
 
-  const { sourceType, total, bookingDetail } = (location.state as { sourceType: string | any; total: number, bookingDetail: any }) || {
+  const { sourceType, total, bookingDetail } = (location.state as any) || {
     sourceType: "promptpay",
     total: 0,
   };
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isPollingRef = useRef(false);
 
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -47,137 +45,118 @@ const PaymentQRPage = () => {
   const [chargeStatus, setChargeStatus] = useState<string>("pending");
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
-  // Countdown timer
+  // ใช้ Ref เพื่อเก็บ instance ของ WebSocket Client ไม่ให้หายไปเมื่อ Re-render
+  const stompClientRef = useRef<Client | null>(null);
+
+  // --- ฟังก์ชันเชื่อมต่อ WebSocket ---
+  const connectWebSocket = useCallback((id: string) => {
+    // 1. ตรวจสอบว่ามี connection เดิมอยู่หรือไม่ ถ้ามีให้ปิดก่อน
+    if (stompClientRef.current) {
+      stompClientRef.current.deactivate();
+    }
+
+    // 2. ตั้งค่า Client
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${baseUrl}/ws-payment`),
+      debug: (msg) => console.log("STOMP:", msg),
+      reconnectDelay: 5000, // ลองต่อใหม่ทุก 5 วินาทีถ้าหลุด
+      onConnect: () => {
+        console.log("Connected to WebSocket for Order:", id);
+
+        // Subscribe ท่อที่ตรงกับ ID (ต้องตรงกับ Java: /topic/order/{id})
+        client.subscribe(`/topic/order/${id}`, (message) => {
+          const payload = JSON.parse(message.body);
+          console.log("Payment Notification:", payload);
+
+          const status = payload.status.toLowerCase();
+
+          // อัปเดตสถานะเพื่อเปลี่ยน UI
+          if (status === "success") {
+            setChargeStatus("successful");
+            store.setPaymentStatus("success");
+            store.setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
+
+            // หน่วงเวลาให้ User เห็น CheckCircle ก่อนเปลี่ยนหน้า
+            setTimeout(() => navigate("/e-ticket"), 2000);
+          } else if (status === "failed") {
+            setChargeStatus("failed");
+            store.setPaymentStatus("failed");
+          }
+        });
+      },
+      onStompError: (frame) => {
+        console.error("STOMP Error:", frame);
+      }
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+  }, [baseUrl, navigate, store]);
+
+  // --- Countdown Timer ---
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-
-  const handleDownloadQR = useCallback(() => {
-    if (!qrUrl) return;
-
-    // Check if in LIFF environment
-    if (liff.isInClient && liff.isInClient()) {
-      // Open in external browser
-      liff.openWindow({
-        url: qrUrl,
-        external: true,
-      });
-    } else {
-      // Download image normally
-      const link = document.createElement("a");
-      link.href = qrUrl;
-      link.download = `qr-code-${chargeId}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  }, [qrUrl, chargeId]);
-
-  // Create charge & get QR
+  // --- Create Charge & Start WebSocket ---
   useEffect(() => {
     if (total <= 0) return;
-    setQrLoading(true);
-    setQrError(null);
 
-    const createnNewCharge = async () => {
+    const initPayment = async () => {
+      setQrLoading(true);
+      setQrError(null);
       try {
-        const response = await createCharge(total, sourceType, bookingDetail)
+        const response: any = await createCharge(total, sourceType, bookingDetail);
         const id = response.data.chargeId;
+        const orderId = response.data.orderId || id; // ใช้ order_id จาก metadata
+
         setChargeId(id);
         setQrUrl(response.data.qrCodeUrl);
-        checkStatsInterval(id);
+
+        // เปลี่ยนจากการทำ Interval มาใช้ WebSocket แทน
+        connectWebSocket(orderId);
       } catch (err: any) {
         setQrError(err.message);
       } finally {
         setQrLoading(false);
       }
-    }
-    createnNewCharge();
-  }, [total, sourceType]);
+    };
 
-  const fetchCharge = async (id: string) => {
-    try {
-      const response = await getTransactionById(id); //await axios.get(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${id}`);
-      console.log("Charge details:", response.data);
-      const charge = response.data.charge;
-      const downloadUri = charge?.source?.scannable_code?.image?.download_uri;
-      if (downloadUri) {
-        setQrUrl(downloadUri);
+    initPayment();
+
+    // Cleanup: เมื่อออกจากหน้า ให้ปิด WebSocket ทันที
+    return () => {
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
       }
-      setChargeStatus(charge?.status ?? "pending");
-    } catch (err: any) {
-      setQrError(err.message);
+    };
+  }, [total, sourceType, connectWebSocket]);
+
+  const handleDownloadQR = useCallback(() => {
+    if (!qrUrl) return;
+    if (liff.isInClient && liff.isInClient()) {
+      liff.openWindow({ url: qrUrl, external: true });
+    } else {
+      const link = document.createElement("a");
+      link.href = qrUrl;
+      link.download = `qr-code-${chargeId}.png`;
+      link.click();
     }
-  };
-
-  // Poll charge status every 3 seconds
-  const checkStatsInterval = useCallback((chargeId: string) => {
-    if (!chargeId) return;
-
-    // กันการสร้าง interval ซ้ำ
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    intervalRef.current = setInterval(async () => {
-      try {
-        // const response = await axios.post(`https://nextoa-api.andamantracking.dev/api/payment/transaction/${chargeId}`
-        const response = await getCharge(chargeId);
-        let status = "pending";
-        console.log(chargeId + " Polled charge status:", response.data);
-        if (response.data === null) {
-          setChargeStatus("pending");
-        } else {
-          status = response.data.status;
-          setChargeStatus(status ?? "pending");
-        }
-
-        status = status.toLowerCase();
-        if (status === "success") {
-          clearInterval(intervalRef.current!);
-          store.setPaymentStatus("success");
-          store.setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
-          setTimeout(() => navigate("/e-ticket"), 1500);
-        } else if (status === "failed" || status === "expired") {
-          clearInterval(intervalRef.current!);
-          store.setPaymentStatus("failed");
-          setTimeout(() => navigate("/e-ticket"), 1500);
-        }
-      } catch {
-        console.error("Error polling charge status");
-        // ignore polling errors
-      }
-    }, 3000);
-
-
-    return () => clearInterval(intervalRef.current!);
-  }, [chargeId, navigate, store]);
+  }, [qrUrl, chargeId]);
 
   const handleCancelCharge = async () => {
-    if (chargeId) {
-      try {
-        await cancelCharge(chargeId);
-      } catch (e) {
-        console.error("Cancel charge error:", e);
-      }
-    }
-    clearInterval(intervalRef.current!);
+    if (chargeId) await cancelCharge(chargeId).catch(console.error);
+    if (stompClientRef.current) stompClientRef.current.deactivate();
     navigate(-1);
-  }
-  // Time expired
+  };
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+
+  // --- Render logic ---
   if (timeLeft === 0 && chargeStatus !== "successful") {
     return (
       <PageTransition direction="left">
@@ -186,22 +165,13 @@ const PaymentQRPage = () => {
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
             <h3 className="text-xl font-bold mb-2">หมดเวลาชำระเงิน</h3>
             <p className="text-muted-foreground mb-6">กรุณาทำรายการใหม่อีกครั้ง</p>
-            <Button
-              onClick={() => {
-                store.reset();
-                navigate("/");
-              }}
-              className="h-12 px-8"
-            >
-              กลับหน้าแรก
-            </Button>
+            <Button onClick={() => { store.reset(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
           </div>
         </BookingLayout>
       </PageTransition>
     );
   }
 
-  // Payment successful
   if (chargeStatus === "successful") {
     return (
       <PageTransition direction="left">
@@ -220,7 +190,6 @@ const PaymentQRPage = () => {
     <PageTransition direction="left">
       <BookingLayout currentStep={5} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
         <div className="px-4 space-y-4">
-          {/* Timer */}
           <div className="bg-destructive/10 rounded-lg p-3 flex items-center gap-2 text-sm">
             <Timer className="h-4 w-4 text-destructive" />
             <span>กรุณาชำระภายใน</span>
@@ -229,77 +198,37 @@ const PaymentQRPage = () => {
             </span>
           </div>
 
-          {/* QR Code */}
           <Card>
-            <CardContent className="p-4 text-center space-y-4 " style={{ border: "none" }}>
-
-              {qrLoading && (
+            <CardContent className="p-4 text-center space-y-4 border-none">
+              {qrLoading ? (
                 <div className="py-8">
                   <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
                   <p className="text-sm text-muted-foreground mt-3">กำลังสร้าง QR Code...</p>
                 </div>
-              )}
-
-              {qrError && (
+              ) : qrError ? (
                 <div className="py-4">
-                  <p className="text-destructive text-sm">เกิดข้อผิดพลาด: {qrError}</p>
-                  <Button
-                    variant="outline"
-                    className="mt-3"
-                    onClick={() => {
-                      setQrError(null);
-                      setQrLoading(true);
-
-                      let retryUrl = "/api/payment/qr";
-                      if (sourceType === "alipay") retryUrl = "/api/payment/alipay-qr";
-                      else if (sourceType === "wechat") retryUrl = "/api/payment/wechat-pay";
-
-                      axios
-                        .post(retryUrl, {}, { params: { amount: total } })
-                        .then(async (res) => {
-                          const id = res.data.chargeId;
-                          setChargeId(id);
-                          await fetchCharge(id);
-                        })
-                        .catch((e) => setQrError(e.message))
-                        .finally(() => setQrLoading(false));
-                    }}
-                  >
-                    ลองใหม่
-                  </Button>
+                  <p className="text-destructive text-sm">{qrError}</p>
                 </div>
-              )}
-
-              {qrUrl && !qrLoading && (
-                <div className="flex flex-col items-center  ">
-                  {/* <div className="bg-white p-4 rounded-xl border border-border shadow-sm"> */}
-                  <img src={qrUrl} alt="QR Code for Payment" className="w-72 object-contain" />
-                  {/* </div> */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span>รอการชำระเงิน...</span>
+              ) : (
+                qrUrl && (
+                  <div className="flex flex-col items-center">
+                    <img src={qrUrl} alt="Payment QR" className="w-72 object-contain" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span>รอการชำระเงิน...</span>
+                    </div>
                   </div>
-                </div>
+                )
               )}
               <h3 className="font-bold text-base">สแกน QR Code เพื่อชำระเงิน</h3>
               <p className="text-2xl font-bold text-primary">฿{total}</p>
-
             </CardContent>
           </Card>
 
-          <Button
-            variant="outline"
-            onClick={handleDownloadQR}
-            disabled={!qrUrl || qrLoading}
-            className="w-full h-12  bg-primary text-white hover:bg-primary/90"
-          >
+          <Button variant="outline" onClick={handleDownloadQR} disabled={!qrUrl || qrLoading} className="w-full h-12 bg-primary text-white hover:bg-primary/90">
             บันทึก QR Code
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setIsCancelDialogOpen(true)}
-            className="w-full h-12"
-          >
+          <Button variant="outline" onClick={() => setIsCancelDialogOpen(true)} className="w-full h-12">
             ยกเลิก
           </Button>
           <div className="w-full h-32"></div>
@@ -309,16 +238,11 @@ const PaymentQRPage = () => {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>ยกเลิกรายการชำระเงิน?</AlertDialogTitle>
-              <AlertDialogDescription>
-                คุณต้องการยกเลิกรายการชำระเงินนี้และกลับไปยังหน้าก่อนหน้าใช่หรือไม่?
-              </AlertDialogDescription>
+              <AlertDialogDescription>คุณต้องการยกเลิกและกลับไปยังหน้าก่อนหน้าใช่หรือไม่?</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>ไม่ยกเลิก</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleCancelCharge}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
+              <AlertDialogAction onClick={handleCancelCharge} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 ยืนยันการยกเลิก
               </AlertDialogAction>
             </AlertDialogFooter>
