@@ -55,11 +55,22 @@ const PaymentQRPage = () => {
       stompClientRef.current.deactivate();
     }
 
+    const socketUrl = baseUrl.replace("https", "wss");
     // 2. ตั้งค่า Client
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${baseUrl}/ws-payment`),
+      brokerURL: `${socketUrl}/ws-payment`,
+      // webSocketFactory: () => new SockJS(`${baseUrl}/ws-payment`, null, {
+      //   sessionId: () => {
+      //     return Math.random().toString(36).substring(2); // สุ่ม ID ใหม่ทุกครั้งที่ต่อ
+      //   },
+      //   transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+      //   // ลองปิดการใช้ Credentials ถ้าฝั่ง Server ไม่ได้ใช้ Session/Cookie
+      //   // แต่ส่วนใหญ่การแก้ที่ Server (Spring Boot) จะชัวร์กว่า
+      // }),
       debug: (msg) => console.log("STOMP:", msg),
       reconnectDelay: 5000, // ลองต่อใหม่ทุก 5 วินาทีถ้าหลุด
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
       onConnect: () => {
         console.log("Connected to WebSocket for Order:", id);
 
@@ -110,10 +121,10 @@ const PaymentQRPage = () => {
       setQrError(null);
       try {
         const response: any = await createCharge(total, sourceType, bookingDetail);
-        const id = response.data.chargeId;
-        const orderId = response.data.orderId || id; // ใช้ order_id จาก metadata
+        const id = response.data.sourceId;
+        const orderId = response.data.sourceId || id; // ใช้ order_id จาก metadata
 
-        setChargeId(id);
+        setChargeId(response.data?.chargeId);
         setQrUrl(response.data.qrCodeUrl);
 
         // เปลี่ยนจากการทำ Interval มาใช้ WebSocket แทน
@@ -157,99 +168,106 @@ const PaymentQRPage = () => {
   const seconds = timeLeft % 60;
 
   // --- Render logic ---
-  if (timeLeft === 0 && chargeStatus !== "successful") {
+  if (timeLeft === 0 && chargeStatus !== "successful" && chargeStatus !== "faild") {
     return (
-      <PageTransition direction="left">
-        <BookingLayout currentStep={5} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
-          <div className="px-4 text-center py-16">
-            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
-            <h3 className="text-xl font-bold mb-2">หมดเวลาชำระเงิน</h3>
-            <p className="text-muted-foreground mb-6">กรุณาทำรายการใหม่อีกครั้ง</p>
-            <Button onClick={() => { store.reset(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
-          </div>
-        </BookingLayout>
-      </PageTransition>
+      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
+        <div className="px-4 text-center py-16">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+          <h3 className="text-xl font-bold mb-2">หมดเวลาชำระเงิน</h3>
+          <p className="text-muted-foreground mb-6">กรุณาทำรายการใหม่อีกครั้ง</p>
+          <Button onClick={() => { store.reset(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
+        </div>
+      </BookingLayout>
+    );
+  }
+
+  if (chargeStatus === "failed") {
+    return (
+      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินไม่สำเร็จ" showSteps={false}>
+        <div className="px-4 text-center py-16">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
+          <h3 className="text-xl font-bold mb-2">ชำระเงินไม่สำเร็จ!</h3>
+          <p className="text-muted-foreground">กรุณาทำรายการใหม่อีกครั้ง</p><br />
+          <Button onClick={() => { store.reset(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
+        </div>
+      </BookingLayout>
     );
   }
 
   if (chargeStatus === "successful") {
     return (
-      <PageTransition direction="left">
-        <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินสำเร็จ" showSteps={false}>
-          <div className="px-4 text-center py-16">
-            <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
-            <h3 className="text-xl font-bold mb-2">ชำระเงินสำเร็จ!</h3>
-            <p className="text-muted-foreground">กำลังนำไปยังหน้า E-Ticket...</p>
-          </div>
-        </BookingLayout>
-      </PageTransition>
+      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินสำเร็จ" showSteps={false}>
+        <div className="px-4 text-center py-16">
+          <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
+          <h3 className="text-xl font-bold mb-2">ชำระเงินสำเร็จ!</h3>
+          <p className="text-muted-foreground">กำลังนำไปยังหน้า E-Ticket...</p>
+        </div>
+      </BookingLayout>
     );
   }
 
   return (
-    <PageTransition direction="left">
-      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
-        <div className="px-4 space-y-4">
-          <div className="bg-destructive/10 rounded-lg p-3 flex items-center gap-2 text-sm">
-            <Timer className="h-4 w-4 text-destructive" />
-            <span>กรุณาชำระภายใน</span>
-            <span className="font-bold text-destructive ml-auto text-lg">
-              {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
-            </span>
-          </div>
-
-          <Card>
-            <CardContent className="p-4 text-center space-y-4 border-none">
-              {qrLoading ? (
-                <div className="py-8">
-                  <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                  <p className="text-sm text-muted-foreground mt-3">กำลังสร้าง QR Code...</p>
-                </div>
-              ) : qrError ? (
-                <div className="py-4">
-                  <p className="text-destructive text-sm">{qrError}</p>
-                </div>
-              ) : (
-                qrUrl && (
-                  <div className="flex flex-col items-center">
-                    <img src={qrUrl} alt="Payment QR" className="w-72 object-contain" />
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                      <span>รอการชำระเงิน...</span>
-                    </div>
-                  </div>
-                )
-              )}
-              <h3 className="font-bold text-base">สแกน QR Code เพื่อชำระเงิน</h3>
-              <p className="text-2xl font-bold text-primary">฿{total}</p>
-            </CardContent>
-          </Card>
-
-          <Button variant="outline" onClick={handleDownloadQR} disabled={!qrUrl || qrLoading} className="w-full h-12 bg-primary text-white hover:bg-primary/90">
-            บันทึก QR Code
-          </Button>
-          <Button variant="outline" onClick={() => setIsCancelDialogOpen(true)} className="w-full h-12">
-            ยกเลิก
-          </Button>
-          <div className="w-full h-32"></div>
+    <BookingLayout currentStep={5} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
+      <div className="px-4 space-y-4">
+        <div className="bg-destructive/10 rounded-lg p-3 flex items-center gap-2 text-sm">
+          <Timer className="h-4 w-4 text-destructive" />
+          <span>กรุณาชำระภายใน</span>
+          <span className="font-bold text-destructive ml-auto text-lg">
+            {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+          </span>
         </div>
 
-        <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>ยกเลิกรายการชำระเงิน?</AlertDialogTitle>
-              <AlertDialogDescription>คุณต้องการยกเลิกและกลับไปยังหน้าก่อนหน้าใช่หรือไม่?</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>ไม่ยกเลิก</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCancelCharge} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                ยืนยันการยกเลิก
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </BookingLayout>
-    </PageTransition>
+        <Card>
+          <CardContent className="p-4 text-center space-y-4 border-none">
+            {qrLoading ? (
+              <div className="py-8">
+                <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                <p className="text-sm text-muted-foreground mt-3">กำลังสร้าง QR Code...</p>
+              </div>
+            ) : qrError ? (
+              <div className="py-4">
+                <p className="text-destructive text-sm">{qrError}</p>
+              </div>
+            ) : (
+              qrUrl && (
+                <div className="flex flex-col items-center">
+                  <img src={qrUrl} alt="Payment QR" className="w-72 object-contain" />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span>รอการชำระเงิน...</span>
+                  </div>
+                </div>
+              )
+            )}
+            <h3 className="font-bold text-base">สแกน QR Code เพื่อชำระเงิน</h3>
+            <p className="text-2xl font-bold text-primary">฿{total}</p>
+          </CardContent>
+        </Card>
+
+        <Button variant="outline" onClick={handleDownloadQR} disabled={!qrUrl || qrLoading} className="w-full h-12 bg-primary text-white hover:bg-primary/90">
+          บันทึก QR Code
+        </Button>
+        <Button variant="outline" onClick={() => setIsCancelDialogOpen(true)} className="w-full h-12">
+          ยกเลิก
+        </Button>
+        <div className="w-full h-32"></div>
+      </div>
+
+      <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยกเลิกรายการชำระเงิน?</AlertDialogTitle>
+            <AlertDialogDescription>คุณต้องการยกเลิกและกลับไปยังหน้าก่อนหน้าใช่หรือไม่?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ไม่ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelCharge} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              ยืนยันการยกเลิก
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </BookingLayout>
   );
 };
 
