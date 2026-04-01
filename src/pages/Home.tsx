@@ -16,6 +16,7 @@ import "../css/Home.css";
 import { mockPromotions } from "@/data/mockData";
 import { getRoutes, getProvinces, getPromotions, Province } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/http/supabase";
 
 const Home = () => {
   const store = useBookingStore();
@@ -26,14 +27,13 @@ const Home = () => {
   const [openDestination, setOpenDestination] = useState(false);
   const [destination, setDestination] = useState("");
   const [selectedRouteId, setSelectedRouteId] = useState("");
-  const [provinces, setProvinces] = useState<Province[]>([]);
-
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>([]);
   // API Queries
-  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
-    queryKey: ['routes'],
-    queryFn: () => getRoutes().then(res => res.data),
-  });
-
+  // const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
+  //   queryKey: ['routes'],
+  //   queryFn: () => supabase.from("routes").select("*").then(res => res.data),
+  // }); 
   // const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
   //   queryKey: ['provinces', selectedRouteId],
   //   queryFn: () => getProvinces(selectedRouteId).then(res => res.data),
@@ -46,11 +46,12 @@ const Home = () => {
 
 
   const filteredDestProvinces = useMemo(() => {
-    console.log("filteredDestProvinces", provinces)
-    console.log("selectedRouteId", selectedRouteId)
-    if (!selectedRouteId) return provinces;
-    const originProvince = provinces.find(p => p.name === startpoint);
-    return provinces.filter((p) => p.routeIds.includes(selectedRouteId) && (!originProvince || p.id !== originProvince.id));
+    if (selectedRouteId) {
+      return provinces.filter((p) => p.region_id == selectedRouteId);
+    }
+    return provinces
+    // const originProvince = provinces.find(p => p.name === startpoint);
+    // return provinces.filter((p) => p.region_id == selectedRouteId && (!originProvince || p.id !== originProvince.id));
   }, [selectedRouteId, startpoint, provinces]);
 
   const handleBooking = () => {
@@ -69,8 +70,22 @@ const Home = () => {
 
   useEffect(() => {
     const conf = async () => {
-      const res = await getProvinces()
-      setProvinces(res)
+      try {
+        const res = await supabase.from("routes").select("*")
+        setProvinces(res.data)
+      } catch (error) {
+        throw error
+      }
+
+      try {
+        supabase.from("routes_group").select("*").then(res => {
+          console.log(res.data)
+          setRoutes(res.data)
+        })
+      } catch (error) {
+        throw error
+      }
+
     }
     conf()
   }, [])
@@ -79,7 +94,7 @@ const Home = () => {
       console.log("provinces ", provinces)
       return provinces;
     }
-    return provinces.filter((p) => p.routeIds.includes(selectedRouteId));
+    return provinces.filter((p) => p.region_id == selectedRouteId);
   }, [selectedRouteId, provinces]);
 
   return (
@@ -100,8 +115,8 @@ const Home = () => {
             <div className="grid  " >
               <div className="scrollbar flex-shrink-0 flex " style={{ width: "100%", overflowX: "scroll" }}>
                 {routes.map((r) => (
-                  <button key={r.id} onClick={() => setSelectedRouteId(r.id)}>
-                    <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", selectedRouteId === r.id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
+                  <button key={r.id} onClick={() => setSelectedRouteId(r.g_route_id)}>
+                    <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", selectedRouteId === r.g_route_id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
                       {r.name}
                     </span>
                   </button>
@@ -126,16 +141,16 @@ const Home = () => {
                     />
                     {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                        {filteredOriginProvinces.filter(p => p.name.includes(startpoint)).map((p) => (
+                        {filteredOriginProvinces.filter(p => selectedRouteId ? p.region_id == selectedRouteId : true).map((p) => (
                           <li
                             key={p.id}
                             className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
                             onClick={() => {
-                              setStartpoint(p.name);
+                              setStartpoint(p.origin);
                               setOpenOrigin(false);
                             }}
                           >
-                            {p.name}
+                            {p.origin}
                           </li>
                         ))}
                       </ul>
@@ -160,16 +175,16 @@ const Home = () => {
                     />
                     {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenDestination(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                        {filteredDestProvinces.filter(p => p.name.includes(destination)).map((p) => (
+                        {filteredDestProvinces.filter(p => selectedRouteId ? p.region_id == selectedRouteId : true).map((p) => (
                           <li
                             key={p.id}
                             className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
                             onClick={() => {
-                              setDestination(p.name);
+                              setDestination(p.destination);
                               setOpenDestination(false);
                             }}
                           >
-                            {p.name}
+                            {p.destination}
                           </li>
                         ))}
                       </ul>

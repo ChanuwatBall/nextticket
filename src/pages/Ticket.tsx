@@ -14,14 +14,15 @@ import { cn } from "@/lib/utils";
 // import { boardingPoints } from "@/data/mockData";
 import { getRoutes, getProvinces, Province, Route, getBoardingPoints, BoardingPoint } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/http/supabase";
 
 const Ticket = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
   const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : store.travelDate === '' ? undefined : undefined);
 
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [routes, setRoute] = useState<Route[]>([]);
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [routes, setRoute] = useState<any[]>([]);
   const [boardingPoints, setBoardingPoints] = useState<BoardingPoint[]>([]);
   // const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
   //   queryKey: ['routes'],
@@ -36,26 +37,42 @@ const Ticket = () => {
 
   useEffect(() => {
     const conf = async () => {
-      const res = await getProvinces()
-      setProvinces(res)
-      const res2 = await getRoutes().then(res => res.data)
-      setRoute(res2)
-      const gp = await getBoardingPoints()
-      console.log("getBoardingPoints", gp)
-      setBoardingPoints(gp)
+      // const res = await getProvinces()
+      // setProvinces(res)
+      // const res2 = await getRoutes().then(res => res.data)
+      // setRoute(res2)
+      // const gp = await getBoardingPoints()
+      // console.log("getBoardingPoints", gp)
+      // setBoardingPoints(gp)
+      try {
+        const res = await supabase.from("routes").select("*")
+        setProvinces(res.data)
+      } catch (error) {
+        throw error
+      }
+
+      try {
+        supabase.from("routes_group").select("*").then(res => {
+          console.log(res.data)
+          setRoute(res.data)
+        })
+      } catch (error) {
+        throw error
+      }
     }
     conf()
   }, [])
 
 
   const filteredOriginProvinces = useMemo(() => {
+    console.log("store.routeId", store.routeId)
     if (!store.routeId) return provinces;
-    return provinces.filter((p) => p.routeIds.includes(store.routeId));
+    return provinces.filter((p) => p.region_id == store.routeId);
   }, [store.routeId, provinces]);
 
   const filteredDestProvinces = useMemo(() => {
     if (!store.routeId) return provinces;
-    return provinces.filter((p) => p.routeIds.includes(store.routeId) && p.id !== store.originProvinceId);
+    return provinces.filter((p) => p.region_id == store.routeId && p.id !== store.originProvinceId);
   }, [store.routeId, store.originProvinceId, provinces]);
 
   const originBoardingPoints = useMemo(
@@ -94,7 +111,7 @@ const Ticket = () => {
             </SelectTrigger>
             <SelectContent>
               {routes.map((r) => (
-                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                <SelectItem key={r.g_route_id} value={r.g_route_id}>{r.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -127,7 +144,7 @@ const Ticket = () => {
             </SelectTrigger>
             <SelectContent>
               {filteredOriginProvinces.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                <SelectItem key={p.id} value={p.id}>{p.origin}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -161,7 +178,7 @@ const Ticket = () => {
             </SelectTrigger>
             <SelectContent>
               {filteredDestProvinces.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                <SelectItem key={p.id} value={p.id}>{p.destination}</SelectItem>
               ))}
             </SelectContent>
           </Select>
