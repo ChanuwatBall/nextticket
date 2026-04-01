@@ -24,13 +24,14 @@ import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import PromotionDetail from "./pages/PromotionDetail";
+import { supabase } from "./http/supabase";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
     // Only initialize LIFF if we are on the production URL specified in VITE_URL
-    if (!window.location.href.startsWith(import.meta.env.VITE_URL)) {
+    if (!window.location.href.startsWith("https://")) {
       console.log("Not on production URL, skipping LIFF init");
       return;
     }
@@ -51,9 +52,19 @@ const App = () => {
           console.log("Loaded user profile from localStorage:", JSON.parse(storedProfile));
         } else {
           console.log("No user profile found in localStorage");
-          liff.getProfile().then((profile) => {
+          liff.getProfile().then(async (profile) => {
             console.log("User profile:", profile);
             localStorage.setItem("userProfile", JSON.stringify(profile));
+
+            const { data, error } = await supabase.from("profiles").upsert({
+              line_id: profile.userId,
+              name: profile.displayName,
+              picture: profile.pictureUrl,
+            });
+            if (error) {
+              throw error
+            }
+            console.log("data ",data)
           });
         } 
       })
