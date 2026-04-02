@@ -9,6 +9,8 @@ import { Clock, MapPin, Users, Bus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getProvinces, Province, searchTrips, Trip } from "@/services/api";
+import { supabase } from "@/http/supabase";
+import moment from "moment";
 
 const SearchResults = () => {
   const navigate = useNavigate();
@@ -36,21 +38,32 @@ const SearchResults = () => {
 
   useEffect(() => {
     const conf = async () => {
-      console.log("destination ", store.destinationProvinceId)
-      setIsLoadingTrips(true)
-      const prnc = await getProvinces(store.routeId)
-      setProvinces(prnc)
-      setOriginName(prnc.find((p) => p.id === store.originProvinceId)?.name ?? "")
-      setDestName(prnc.find((p) => p.id === store.destinationProvinceId)?.name ?? "")
-      const res = await searchTrips({
-        routeId: store.routeId,
-        originProvinceId: store.originProvinceId,
-        destinationProvinceId: store.destinationProvinceId,
-        date: store.travelDate,
-        passengerCount: store.passengerCount
-      }).then(res => res.data)
-      setTrips(res)
-      setIsLoadingTrips(false)
+      console.log("routeId ", store.routeId)
+      const res = await supabase.from("trips")
+        .select("*")
+        .eq("route_id", store.originProvinceId)
+        .gte("date", moment().add(2, "hour").format())
+      // .eq("origin_province_id", store.originProvinceId)
+      // .eq("destination_province_id", store.destinationProvinceId)
+      // .eq("date", store.travelDate)
+      // .gte("available_seats", store.passengerCount)
+      // .then(res => res.data)
+      // setTrips(res)
+      console.log("trips ", res)
+      // setIsLoadingTrips(true)
+      // const prnc = await getProvinces(store.routeId)
+      // setProvinces(prnc)
+      // setOriginName(prnc.find((p) => p.id === store.originProvinceId)?.name ?? "")
+      // setDestName(prnc.find((p) => p.id === store.destinationProvinceId)?.name ?? "")
+      // const res = await searchTrips({
+      //   routeId: store.routeId,
+      //   originProvinceId: store.originProvinceId,
+      //   destinationProvinceId: store.destinationProvinceId,
+      //   date: store.travelDate,
+      //   passengerCount: store.passengerCount
+      // }).then(res => res.data)
+      // setTrips(res)
+      // setIsLoadingTrips(false)
     }
     conf()
 

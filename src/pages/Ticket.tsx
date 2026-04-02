@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { Button } from "@/components/ui/button";
@@ -24,36 +24,85 @@ const Ticket = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
   const [routes, setRoute] = useState<any[]>([]);
   const [boardingPoints, setBoardingPoints] = useState<BoardingPoint[]>([]);
+  const [selectOrigin, setSelectOrigin] = useState<any>(null);
+  const [selectDest, setSelectDest] = useState<any>(null);
+  const [originBoardingPoints, setOriginBoardingPoints] = useState<any[]>([]);
+  const [destBoardingPoints, setDestBoardingPoints] = useState<any[]>([]);
   // const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
   //   queryKey: ['routes'],
   //   queryFn: () => getRoutes().then(res => res.data),
   // });
 
-  // const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
-  //   queryKey: ['provinces', store.routeId],
-  //   queryFn: () => getProvinces(store.routeId).then(res => res.data),
+  // const { data: originBoardingPoints = [], isLoading: isLoadingOriginBoardingPoints } = useQuery({
+  //   queryKey: ['originBoardingPoints', store.originProvinceId],
+  //   queryFn: () => {
+  //     const selectOrigin = provinces.find((p) => p.id === store.originProvinceId)
+  //     console.log("selectOrigin ", selectOrigin)
+  //     const ress = supabase.from("route_boarding_points")
+  //       .select("* , boarding_points(id,name,name_en,province_id)")
+  //       .eq("route_id", store.originProvinceId)
+  //       .then(res => res.data)
+  //   }
   // });
 
+  // const { data: destBoardingPoints = [], isLoading: isLoadingDestBoardingPoints } = useQuery({
+  //   queryKey: ['destBoardingPoints', store.destinationProvinceId],
+  //   queryFn: () => {
+  //     const selectDest = provinces.find((p) => p.id === store.destinationProvinceId)
+  //     console.log("selectDest ", selectDest)
+
+  //     const ress = supabase.from("route_boarding_points")
+  //       .select("* , boarding_points(id,name,name_en,province_id)")
+  //       .eq("route_id", store.originProvinceId)
+  //       .then(res => res.data)
+  //   }
+  // }, [store.originProvinceId]);
 
   useEffect(() => {
     const conf = async () => {
-      // const res = await getProvinces()
-      // setProvinces(res)
-      // const res2 = await getRoutes().then(res => res.data)
-      // setRoute(res2)
-      // const gp = await getBoardingPoints()
-      // console.log("getBoardingPoints", gp)
-      // setBoardingPoints(gp)
       try {
         const res = await supabase.from("routes").select("*")
         setProvinces(res.data)
+        try {
+          const boardingpoint = await supabase.from("boarding_points").select("*")
+          console.log("boardingpoint", boardingpoint.data)
+          setBoardingPoints(boardingpoint.data)
+          console.log("store.originProvinceId", store.originProvinceId)
+          const selectOrigin = res.data.find((p) => p.id === store.originProvinceId)
+          console.log("selectOrigin ", selectOrigin)
+          setSelectOrigin(selectOrigin)
+
+
+          // const selectDest = res.data.find((p) => p.id === store.destinationProvinceId)
+          // console.log("selectDest ", selectDest)
+          // setSelectDest(selectDest)
+
+          const ress = await supabase.from("route_boarding_points")
+            .select("* , boarding_points(id,name,name_en,province_id)")
+            .eq("route_id", store.originProvinceId)
+          console.log("ress", ress.data)
+
+          let origin = boardingpoint.data.filter((item: any) => {
+            return item.province_id === selectOrigin.origin_id
+          })
+          setOriginBoardingPoints(origin)
+          console.log("origin boarding points ", origin)
+          let desty = boardingpoint.data.filter((item: any) => {
+            return item.province_id === selectDest.destination_id
+          })
+          console.log("dest boarding points ", desty)
+          setDestBoardingPoints(desty)
+          // .eq("route_id", store.destinationProvinceId)
+
+        } catch (err) {
+          throw err
+        }
       } catch (error) {
         throw error
       }
 
       try {
         supabase.from("routes_group").select("*").then(res => {
-          console.log(res.data)
           setRoute(res.data)
         })
       } catch (error) {
@@ -61,29 +110,39 @@ const Ticket = () => {
       }
     }
     conf()
-  }, [])
+  }, [store.originProvinceId, store.destinationProvinceId, store.originProvinceId])
 
+
+  // const filteredOriginProvinces = useMemo(() => {
+  //   console.log("store.routeId", store.routeId)
+  //   if (!store.routeId) return provinces;
+  //   return provinces.filter((p) => p.region_id == store.routeId);
+  // }, [store.routeId, provinces]);
 
   const filteredOriginProvinces = useMemo(() => {
-    console.log("store.routeId", store.routeId)
-    if (!store.routeId) return provinces;
-    return provinces.filter((p) => p.region_id == store.routeId);
+    const list = store.routeId
+      ? provinces.filter((p) => p.region_id == store.routeId)
+      : provinces;
+    return list.filter((v, i, a) => a.findIndex(t => t.origin === v.origin) === i);
   }, [store.routeId, provinces]);
 
+
   const filteredDestProvinces = useMemo(() => {
-    if (!store.routeId) return provinces;
-    return provinces.filter((p) => p.region_id == store.routeId && p.id !== store.originProvinceId);
-  }, [store.routeId, store.originProvinceId, provinces]);
+    const list = store.routeId
+      ? provinces.filter((p) => p.region_id == store.routeId)
+      : provinces;
+    return list.filter((v, i, a) => a.findIndex(t => t.destination === v.destination) === i);
+  }, [store.routeId, provinces]);
 
-  const originBoardingPoints = useMemo(
-    () => boardingPoints.filter((bp) => bp.provinceId === store.originProvinceId),
-    [store.originProvinceId, provinces, boardingPoints]
-  );
+  // const originBoardingPoints = useMemo(
+  //   () => boardingPoints.filter((bp) => bp.provinceId === store.originProvinceId),
+  //   [store.originProvinceId, provinces, boardingPoints]
+  // );
 
-  const destBoardingPoints = useMemo(
-    () => boardingPoints.filter((bp) => bp.provinceId === store.destinationProvinceId),
-    [store.destinationProvinceId, provinces, boardingPoints]
-  );
+  // const destBoardingPoints = useMemo(
+  //   () => boardingPoints.filter((bp) => bp.provinceId === store.destinationProvinceId),
+  //   [store.destinationProvinceId, provinces, boardingPoints]
+  // );
 
   const canSearch =
     store.routeId &&
@@ -160,7 +219,7 @@ const Ticket = () => {
               </SelectTrigger>
               <SelectContent>
                 {originBoardingPoints.map((bp) => (
-                  <SelectItem key={bp.id} value={bp.id}>{bp.name}</SelectItem>
+                  <SelectItem key={bp.id} value={bp.id}>{bp?.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -194,7 +253,7 @@ const Ticket = () => {
               </SelectTrigger>
               <SelectContent>
                 {destBoardingPoints.map((bp) => (
-                  <SelectItem key={bp.id} value={bp.id}>{bp.name}</SelectItem>
+                  <SelectItem key={bp.id} value={bp.id}>{bp?.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

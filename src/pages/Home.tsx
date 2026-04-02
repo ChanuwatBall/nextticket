@@ -30,14 +30,6 @@ const Home = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
   // API Queries
-  // const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
-  //   queryKey: ['routes'],
-  //   queryFn: () => supabase.from("routes").select("*").then(res => res.data),
-  // }); 
-  // const { data: provinces = [], isLoading: isLoadingProvinces } = useQuery({
-  //   queryKey: ['provinces', selectedRouteId],
-  //   queryFn: () => getProvinces(selectedRouteId).then(res => res.data),
-  // });
 
   const { data: promotions = [], isLoading: isLoadingPromotions } = useQuery({
     queryKey: ['promotions'],
@@ -45,23 +37,25 @@ const Home = () => {
   });
 
 
+
   const filteredDestProvinces = useMemo(() => {
-    if (selectedRouteId) {
-      return provinces.filter((p) => p.region_id == selectedRouteId);
-    }
-    return provinces
-    // const originProvince = provinces.find(p => p.name === startpoint);
-    // return provinces.filter((p) => p.region_id == selectedRouteId && (!originProvince || p.id !== originProvince.id));
-  }, [selectedRouteId, startpoint, provinces]);
+    const list = selectedRouteId
+      ? provinces.filter((p) => p.region_id == selectedRouteId)
+      : provinces;
+    return list.filter((v, i, a) => a.findIndex(t => t.destination === v.destination) === i);
+  }, [selectedRouteId, provinces]);
+
 
   const handleBooking = () => {
     // Set route
     if (selectedRouteId) store.setRoute(selectedRouteId);
     // Set origin province
-    const originP = provinces.find(p => p.name === startpoint);
+    const originP = provinces.find(p => p.origin === startpoint);
+    console.log("originP ", originP)
     if (originP) store.setOriginProvince(originP.id);
     // Set destination province
-    const destP = provinces.find(p => p.name === destination);
+    const destP = provinces.find(p => p.destination === destination);
+    console.log("destP ", destP)
     if (destP) store.setDestinationProvince(destP.id);
     // Set date
     if (date) store.setTravelDate(format(date, "yyyy-MM-dd"));
@@ -90,11 +84,10 @@ const Home = () => {
     conf()
   }, [])
   const filteredOriginProvinces = useMemo(() => {
-    if (!selectedRouteId) {
-      console.log("provinces ", provinces)
-      return provinces;
-    }
-    return provinces.filter((p) => p.region_id == selectedRouteId);
+    const list = selectedRouteId
+      ? provinces.filter((p) => p.region_id == selectedRouteId)
+      : provinces;
+    return list.filter((v, i, a) => a.findIndex(t => t.origin === v.origin) === i);
   }, [selectedRouteId, provinces]);
 
   return (
@@ -141,7 +134,7 @@ const Home = () => {
                     />
                     {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                        {filteredOriginProvinces.filter(p => selectedRouteId ? p.region_id == selectedRouteId : true).map((p) => (
+                        {filteredOriginProvinces.map((p) => (
                           <li
                             key={p.id}
                             className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
@@ -169,24 +162,25 @@ const Home = () => {
                       value={destination}
                       placeholder="เลือกปลายทาง"
                       onFocus={() => setOpenDestination(true)}
-                      onChange={(e) => setDestination(e.target.value)}
+                      onChange={(e) => { setDestination(e.target.value) }}
                       onBlur={() => setTimeout(() => setOpenDestination(false), 150)}
                       className="w-full h-12   border-b border-input bg-card focus:outline-none focus:ring-2 focus:ring-ring font-medium text-muted-foreground cursor-pointer px-3 py-2"
                     />
                     {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenDestination(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                        {filteredDestProvinces.filter(p => selectedRouteId ? p.region_id == selectedRouteId : true).map((p) => (
-                          <li
-                            key={p.id}
-                            className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
-                            onClick={() => {
-                              setDestination(p.destination);
-                              setOpenDestination(false);
-                            }}
-                          >
-                            {p.destination}
-                          </li>
-                        ))}
+                        {filteredDestProvinces.filter(p => selectedRouteId ? p.region_id == selectedRouteId : true)
+                          .filter(p => p.destination !== startpoint).map((p) => (
+                            <li
+                              key={p.id}
+                              className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
+                              onClick={() => {
+                                setDestination(p.destination);
+                                setOpenDestination(false);
+                              }}
+                            >
+                              {p.destination}
+                            </li>
+                          ))}
                       </ul>
                     </div>}
                   </div>
