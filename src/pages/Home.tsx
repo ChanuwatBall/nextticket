@@ -28,13 +28,15 @@ const Home = () => {
   const [destination, setDestination] = useState("");
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [provinces, setProvinces] = useState<any[]>([]);
+  const [routesGroup, setRoutesGroup] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
+  const [openRoute, setOpenRoute] = useState(false);
   // API Queries
 
-  const { data: promotions = [], isLoading: isLoadingPromotions } = useQuery({
-    queryKey: ['promotions'],
-    queryFn: () => getPromotions().then(res => res.data),
-  });
+  // const { data: promotions = [], isLoading: isLoadingPromotions } = useQuery({
+  //   queryKey: ['promotions'],
+  //   queryFn: () => getPromotions().then(res => res.data),
+  // });
 
 
 
@@ -66,7 +68,7 @@ const Home = () => {
     const conf = async () => {
       try {
         const res = await supabase.from("routes").select("*")
-        setProvinces(res.data)
+        setRoutes(res.data)
       } catch (error) {
         throw error
       }
@@ -74,7 +76,16 @@ const Home = () => {
       try {
         supabase.from("routes_group").select("*").then(res => {
           console.log(res.data)
-          setRoutes(res.data)
+          setRoutesGroup(res.data)
+        })
+      } catch (error) {
+        throw error
+      }
+
+      try {
+        supabase.from("provinces").select("*").then(res => {
+          console.log(res.data)
+          setProvinces(res.data)
         })
       } catch (error) {
         throw error
@@ -82,14 +93,57 @@ const Home = () => {
 
     }
     conf()
-  }, [])
-  const filteredOriginProvinces = useMemo(() => {
-    const list = selectedRouteId
-      ? provinces.filter((p) => p.region_id == selectedRouteId)
-      : provinces;
-    return list.filter((v, i, a) => a.findIndex(t => t.origin === v.origin) === i);
-  }, [selectedRouteId, provinces]);
+  }, [store])
 
+  const filteredRoutes = useMemo(() => {
+    return routes.filter((r) => store?.routeGroupid ? r.region_id == store?.routeGroupid : true)
+  }, [routes, store?.routeGroupid])
+
+  const filteredProvinceByOrigin = useMemo(() => {
+    return store?.routeGroupid ? 
+    provinces.filter((r) => store?.routeGroupid ? r.region_id == store?.routeGroupid : true).
+    filter((r) => store?.originProvinceId ? r.id == store?.originProvinceId : true)
+    : provinces
+  }, [provinces, store?.originProvinceId])
+
+ 
+
+  const filteredProvinceByDestination = useMemo(() => { 
+    const filtered =  provinces.filter(r => store.originProvinceId ? r.id !== store.originProvinceId?.id : true)
+    return filtered
+  }, [provinces, store?.originProvinceId])
+
+  
+  const selectRoute = (route: any) => {
+    console.log("route ", route)
+    store.setRoute(`${route.origin} - ${route.destination}`);
+    setOpenRoute(false);
+
+    const pStart = provinces.find(p => p.id === route.origin_id);
+    console.log("pStart ", pStart)
+
+    if (pStart) store.setOriginProvince(pStart.id);
+    const pEnd = provinces.find(p => p.id === route.destination_id);
+    store.setOriginProvince(pStart.id)
+    setStartpoint(pStart.name)
+    console.log("pEnd ", pEnd)
+    if (pEnd) store.setDestinationProvince(pEnd.name);
+    store.setDestinationProvince(pEnd.id)
+    setDestination(pEnd.name)
+  }
+  const chooseGroup = (r) => {
+    store?.setRouteGroupId(r.g_route_id)
+    store.setRoute(null)
+    store.setOriginProvince(null)
+    store.setDestinationProvince(null)
+  }
+  const chooseRoute = (p) => {
+    selectRoute(p);
+    const sp = provinces.find(pr => pr.id == p.origin)
+    const ep = provinces.find(pr => pr.id == p.destination)
+    store?.setOriginProvince(sp);
+    store?.setDestinationProvince(ep);
+  }
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20">
       <header className="bg-primary text-primary-foreground px-4 py-3 flex items-start justify-between gap-3 shadow-md sticky top-0  z-50 pt-8 rounded-b-3xl " style={{ height: "10rem" }}>
@@ -107,15 +161,18 @@ const Home = () => {
           <div className="bg-white rounded-2xl p-3 mb-4  text-lg drop-shadow-xl " >
             <div className="grid  " >
               <div className="scrollbar flex-shrink-0 flex " style={{ width: "100%", overflowX: "scroll" }}>
-                {routes.map((r) => (
-                  <button key={r.id} onClick={() => setSelectedRouteId(r.g_route_id)}>
-                    <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", selectedRouteId === r.g_route_id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
+                {routesGroup.map((r) => (
+                  <button key={r.id} onClick={() => {
+                    chooseGroup(r)
+                  }}>
+                    <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", store?.routeGroupid === r.g_route_id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
                       {r.name}
                     </span>
                   </button>
                 ))}
               </div>
               <div>
+               
 
                 <div className="space-y-1.5 mt-3">
                   <label className="text-sm font-medium text-muted-foreground ">
@@ -125,7 +182,7 @@ const Home = () => {
                     <MapPin className="h-3.5 w-3.5  text-muted-foreground" />
                     <input
                       type="text"
-                      value={startpoint}
+                      value={store.originProvinceId?.name}
                       placeholder="เลือกต้นทาง"
                       onFocus={() => setOpenOrigin(true)}
                       onChange={(e) => setStartpoint(e.target.value)}
@@ -134,16 +191,17 @@ const Home = () => {
                     />
                     {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                        {filteredOriginProvinces.map((p) => (
+                        {provinces.map((p) => (
                           <li
                             key={p.id}
                             className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
                             onClick={() => {
                               setStartpoint(p.origin);
                               setOpenOrigin(false);
+                              store.setOriginProvince(p);
                             }}
                           >
-                            {p.origin}
+                            {p.name}
                           </li>
                         ))}
                       </ul>
@@ -159,7 +217,7 @@ const Home = () => {
                     <MapPin className="h-3.5 w-3.5  text-muted-foreground" />
                     <input
                       type="text"
-                      value={destination}
+                      value={store?.destinationProvinceId?.name}
                       placeholder="เลือกปลายทาง"
                       onFocus={() => setOpenDestination(true)}
                       onChange={(e) => { setDestination(e.target.value) }}
@@ -168,17 +226,17 @@ const Home = () => {
                     />
                     {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenDestination(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                        {filteredDestProvinces.filter(p => selectedRouteId ? p.region_id == selectedRouteId : true)
-                          .filter(p => p.destination !== startpoint).map((p) => (
+                        {filteredProvinceByDestination.map((p) => (
                             <li
                               key={p.id}
                               className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
                               onClick={() => {
-                                setDestination(p.destination);
+                                setDestination(p);
                                 setOpenDestination(false);
+                                store.setDestinationProvince(p);
                               }}
                             >
-                              {p.destination}
+                              {p.name}
                             </li>
                           ))}
                       </ul>

@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 // import { routes, provinces, boardingPoints } from "@/data/mockData";
 import { useBookingStore } from "@/store/bookingStore";
-import { CalendarIcon, MapPin, Users, Search } from "lucide-react";
+import { CalendarIcon, MapPin, Users, Search, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ const Ticket = () => {
   const store = useBookingStore();
   const [date, setDate] = useState<Date | undefined>(store.travelDate ? new Date(store.travelDate) : store.travelDate === '' ? undefined : undefined);
 
+  const [routeGroup, setRouteGroup] = useState<any[]>([]);
+  const [rgId, setRgId] = useState<any>(null);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [routes, setRoute] = useState<any[]>([]);
   const [boardingPoints, setBoardingPoints] = useState<BoardingPoint[]>([]);
@@ -28,121 +30,78 @@ const Ticket = () => {
   const [selectDest, setSelectDest] = useState<any>(null);
   const [originBoardingPoints, setOriginBoardingPoints] = useState<any[]>([]);
   const [destBoardingPoints, setDestBoardingPoints] = useState<any[]>([]);
-  // const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
-  //   queryKey: ['routes'],
-  //   queryFn: () => getRoutes().then(res => res.data),
-  // });
+  const [openOrigin, setOpenOrigin] = useState(false);
+  const [startpoint, setStartpoint] = useState("");
+  const [droppoints , setDropPoints] = useState([])
 
-  // const { data: originBoardingPoints = [], isLoading: isLoadingOriginBoardingPoints } = useQuery({
-  //   queryKey: ['originBoardingPoints', store.originProvinceId],
-  //   queryFn: () => {
-  //     const selectOrigin = provinces.find((p) => p.id === store.originProvinceId)
-  //     console.log("selectOrigin ", selectOrigin)
-  //     const ress = supabase.from("route_boarding_points")
-  //       .select("* , boarding_points(id,name,name_en,province_id)")
-  //       .eq("route_id", store.originProvinceId)
-  //       .then(res => res.data)
-  //   }
-  // });
 
-  // const { data: destBoardingPoints = [], isLoading: isLoadingDestBoardingPoints } = useQuery({
-  //   queryKey: ['destBoardingPoints', store.destinationProvinceId],
-  //   queryFn: () => {
-  //     const selectDest = provinces.find((p) => p.id === store.destinationProvinceId)
-  //     console.log("selectDest ", selectDest)
-
-  //     const ress = supabase.from("route_boarding_points")
-  //       .select("* , boarding_points(id,name,name_en,province_id)")
-  //       .eq("route_id", store.originProvinceId)
-  //       .then(res => res.data)
-  //   }
-  // }, [store.originProvinceId]);
 
   useEffect(() => {
     const conf = async () => {
-      try {
-        const res = await supabase.from("routes").select("*")
-        setProvinces(res.data)
-        try {
-          const boardingpoint = await supabase.from("boarding_points").select("*")
-          console.log("boardingpoint", boardingpoint.data)
-          setBoardingPoints(boardingpoint.data)
-          console.log("store.originProvinceId", store.originProvinceId)
-          const selectOrigin = res.data.find((p) => p.id === store.originProvinceId)
-          console.log("selectOrigin ", selectOrigin)
-          setSelectOrigin(selectOrigin)
-
-
-          // const selectDest = res.data.find((p) => p.id === store.destinationProvinceId)
-          // console.log("selectDest ", selectDest)
-          // setSelectDest(selectDest)
-
-          const ress = await supabase.from("route_boarding_points")
-            .select("* , boarding_points(id,name,name_en,province_id)")
-            .eq("route_id", store.originProvinceId)
-          console.log("ress", ress.data)
-
-          let origin = boardingpoint.data.filter((item: any) => {
-            return item.province_id === selectOrigin.origin_id
-          })
-          setOriginBoardingPoints(origin)
-          console.log("origin boarding points ", origin)
-          let desty = boardingpoint.data.filter((item: any) => {
-            return item.province_id === selectDest.destination_id
-          })
-          console.log("dest boarding points ", desty)
-          setDestBoardingPoints(desty)
-          // .eq("route_id", store.destinationProvinceId)
-
-        } catch (err) {
-          throw err
-        }
-      } catch (error) {
-        throw error
-      }
 
       try {
         supabase.from("routes_group").select("*").then(res => {
-          setRoute(res.data)
+          console.log(res.data)
+          setRouteGroup(res.data)
         })
       } catch (error) {
         throw error
       }
+
+      try {
+        supabase.from("provinces").select("*").then(res => {
+          console.log(res.data)
+          setProvinces(res.data)
+        })
+      } catch (error) {
+        throw error
+      }
+
+      try {
+             supabase.from("boarding_points").select("*").then(
+              res=>{
+                console.log("res boarding_points ",res.data)
+                setDropPoints(res.data)
+              }
+            )
+      } catch (error) {
+        throw error
+      }
+      
     }
     conf()
-  }, [store.originProvinceId, store.destinationProvinceId, store.originProvinceId])
+  }, [store])
+
+  const chooseOrigin = async (province_id: any) => {
+    console.log("province_id ", province_id)
+    try {
+          const ress = droppoints.filter(r=>r.province_id === province_id)
+          console.log("droppoints origin ",  ress )
+          setOriginBoardingPoints(ress)
+      } catch (error) {
+        throw error
+      }
+  }
+
+  
+  const chooseDest = async (province_id: any) => {
+    console.log("province_id ", province_id)
+    try {
+          const ress = droppoints.filter(r=>r.province_id === province_id)
+          console.log("droppoints dest ",await ress )
+          setDestBoardingPoints(ress)
+      } catch (error) {
+        throw error 
+      }
+  }
 
 
-  // const filteredOriginProvinces = useMemo(() => {
-  //   console.log("store.routeId", store.routeId)
-  //   if (!store.routeId) return provinces;
-  //   return provinces.filter((p) => p.region_id == store.routeId);
-  // }, [store.routeId, provinces]);
-
-  const filteredOriginProvinces = useMemo(() => {
-    const list = store.routeId
-      ? provinces.filter((p) => p.region_id == store.routeId)
-      : provinces;
-    return list.filter((v, i, a) => a.findIndex(t => t.origin === v.origin) === i);
-  }, [store.routeId, provinces]);
+  const filteredProvinceByDestination = useMemo(() => {
+    const filtered = provinces.filter(r => store.originProvinceId ? r.id !== store.originProvinceId?.id : true)
+    return filtered
+  }, [provinces, store?.originProvinceId])
 
 
-  const filteredDestProvinces = useMemo(() => {
-    const list = store.routeId
-      ? provinces.filter((p) => p.region_id == store.routeId)
-      : provinces;
-    return list.filter((v, i, a) => a.findIndex(t => t.destination === v.destination) === i);
-  }, [store.routeId, provinces]);
-
-  // const originBoardingPoints = useMemo(
-  //   () => boardingPoints.filter((bp) => bp.provinceId === store.originProvinceId),
-  //   [store.originProvinceId, provinces, boardingPoints]
-  // );
-
-  // const destBoardingPoints = useMemo(
-  //   () => boardingPoints.filter((bp) => bp.provinceId === store.destinationProvinceId),
-  //   [store.destinationProvinceId, provinces, boardingPoints]
-  // );
 
   const canSearch =
     store.routeId &&
@@ -161,53 +120,74 @@ const Ticket = () => {
   return (
     <BookingLayout currentStep={1} navto={() => navigate("/")} title="จองตั๋วรถโดยสาร">
       <div className="px-4 space-y-4">
-        {/* Route */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">เส้นทาง</label>
-          <Select value={store.routeId} onValueChange={store.setRoute}>
-            <SelectTrigger className="h-12">
-              <SelectValue placeholder="เลือกเส้นทาง" />
-            </SelectTrigger>
-            <SelectContent>
-              {routes.map((r) => (
-                <SelectItem key={r.g_route_id} value={r.g_route_id}>{r.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Date */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">วันที่เดินทาง</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-full h-12 justify-start font-normal", !date && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP", { locale: th }) : "เลือกวันที่"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={date} onSelect={setDate} disabled={(d) => d < new Date()} />
-            </PopoverContent>
-          </Popover>
+        <div className="grid  " >
+          <div className="scrollbar flex-shrink-0 flex " style={{ width: "100%", overflowX: "scroll" }}>
+            {routeGroup.map((r) => (
+              <button key={r.id} onClick={() => {
+                setRgId(r.g_route_id)
+              }}>
+                <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", rgId === r.g_route_id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
+                  {r.name}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Origin */}
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 mt-3">
+          <label className="text-sm font-medium text-muted-foreground ">
+            ต้นทาง
+          </label>
+          <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}> 
+            <div className="flex items-center gap-1 h-10 w-full items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+            <input
+              type="text"
+              value={store.originProvinceId?.name}
+              placeholder="เลือกต้นทาง"
+              onFocus={() => setOpenOrigin(true)}
+              onChange={(e) =>{ setStartpoint(e.target.value);}}
+              onBlur={() => setTimeout(() => setOpenOrigin(false), 150)} 
+              className="h-10 w-full bg-transparent  px-3 py-2"
+            > 
+            </input>
+            <ChevronDown className="h-4 w-4 opacity-50" />
+            </div>
+            {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
+              <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
+                {provinces.map((p) => (
+                  <li
+                    key={p.id}
+                    className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
+                    onClick={() => {
+                      chooseOrigin(p.id)
+                      setStartpoint(p.origin);
+                      setOpenOrigin(false);
+                      store.setOriginProvince(p);
+                    }}
+                  >
+                    {p.name}
+                  </li>
+                ))}
+              </ul>
+            </div>}
+          </div>
+        </div>
+        {/* <div className="space-y-1.5">
           <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" /> ต้นทาง
           </label>
-          <Select value={store.originProvinceId} onValueChange={store.setOriginProvince}>
+          <Select value={store.originProvinceId?.id} onValueChange={(e)=>{store.setOriginProvince(provinces.find(p=> p.id == e)) ; console.log("e ", e)}}>
             <SelectTrigger className="h-12">
               <SelectValue placeholder="เลือกจังหวัดต้นทาง" />
             </SelectTrigger>
             <SelectContent>
-              {filteredOriginProvinces.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.origin}</SelectItem>
+              {provinces.map((p) => (
+                <SelectItem key={p.id} value={p}>{p.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </div> */}
 
         {/* Boarding Point */}
         {store.originProvinceId && (
@@ -231,13 +211,13 @@ const Ticket = () => {
           <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" /> ปลายทาง
           </label>
-          <Select value={store.destinationProvinceId} onValueChange={store.setDestinationProvince}>
+          <Select value={store.destinationProvinceId?.id} onValueChange={store.setDestinationProvince}>
             <SelectTrigger className="h-12">
               <SelectValue placeholder="เลือกจังหวัดปลายทาง" />
             </SelectTrigger>
             <SelectContent>
-              {filteredDestProvinces.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.destination}</SelectItem>
+              {filteredProvinceByDestination.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -259,6 +239,21 @@ const Ticket = () => {
             </Select>
           </div>
         )}
+        {/* Date */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">วันที่เดินทาง</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-full h-12 justify-start font-normal", !date && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP", { locale: th }) : "เลือกวันที่"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={date} onSelect={setDate} disabled={(d) => d < new Date()} />
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {/* Passengers */}
         <div className="space-y-1.5">

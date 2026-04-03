@@ -12,12 +12,13 @@ export interface PassengerInfo {
 
 interface BookingState {
   // Step 1
-  routeId: string;
-  travelDate: string;
-  originProvinceId: string;
-  destinationProvinceId: string;
-  boardingPointId: string;
-  dropOffPointId: string;
+  routeGroupid:any;
+  routeId: any;
+  travelDate: any;
+  originProvinceId: {id:any,name:string, name_en:string};
+  destinationProvinceId: {id:string,name:string, name_en:string};
+  boardingPointId: any;
+  dropOffPointId: any;
   passengerCount: number;
 
   // Step 2
@@ -32,17 +33,18 @@ interface BookingState {
   discount: number;
 
   // Step 5
-  paymentMethod: string;
-  bookingId: string;
+  paymentMethod: any;
+  bookingId: any;
   paymentStatus: 'pending' | 'success' | 'failed' | null;
 
   // Actions
-  setRoute: (routeId: string) => void;
-  setTravelDate: (date: string) => void;
-  setOriginProvince: (id: string) => void;
-  setDestinationProvince: (id: string) => void;
-  setBoardingPoint: (id: string) => void;
-  setDropOffPoint: (id: string) => void;
+  setRouteGroupId: (routeGroupid: any) => void;
+  setRoute: (routeId: any) => void;
+  setTravelDate: (date: any) => void;
+  setOriginProvince: (id: any) => void;
+  setDestinationProvince: (id: any) => void;
+  setBoardingPoint: (id: any) => void;
+  setDropOffPoint: (id: any) => void;
   setPassengerCount: (count: number) => void;
   setSelectedTrip: (trip: Trip) => void;
   setSelectedSeats: (seats: Seat[]) => void;
@@ -56,6 +58,7 @@ interface BookingState {
 }
 
 const initialState = {
+  routeGroupid:"",
   routeId: '',
   travelDate: '',
   originProvinceId: '',
@@ -75,6 +78,7 @@ const initialState = {
 
 export const useBookingStore = create<BookingState>((set) => ({
   ...initialState,
+  setRouteGroupId: (routeGroupid) => set({ routeGroupid }),
   setRoute: (routeId) => set({ routeId }),
   setTravelDate: (travelDate) => set({ travelDate }),
   setOriginProvince: (originProvinceId) => set({ originProvinceId, boardingPointId: '' }),
