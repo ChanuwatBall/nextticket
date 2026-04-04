@@ -26,10 +26,10 @@ const PaymentPage = () => {
   const subtotal = tripPrice * store.selectedSeats.length;
   const total = Math.max(0, subtotal - store.discount);
 
-  const originName = provinces.find((p) => p.id === store.originProvinceId)?.name ?? "";
-  const destName = provinces.find((p) => p.id === store.destinationProvinceId)?.name ?? "";
-  const boardingName = boardingPoints.find((b) => b.id === store.boardingPointId)?.name ?? "";
-  const dropOffName = boardingPoints.find((b) => b.id === store.dropOffPointId)?.name ?? "";
+  const originName = store.originProvinceId?.name ?? "";
+  const destName = store.destinationProvinceId?.name ?? "";
+  const boardingName = store.boardingPointId.name ?? "";
+  const dropOffName = store.dropOffPointId.name ?? "";
 
   const handlePaymentMethodChange = (value: string) => {
     store.setPaymentMethod(value);
@@ -51,9 +51,9 @@ const PaymentPage = () => {
         origin: originName,
         destination: destName,
         date: store.travelDate,
-        time: store.selectedTrip?.departureTime,
-        arrive: store.selectedTrip?.arrivalTime,
-        busType: store.selectedTrip?.busType,
+        time: store.selectedTrip?.departure_time,
+        arrive: store.selectedTrip?.arrival_time,
+        busType: store.selectedTrip?.bus_type_id?.name,
         boardingPoint: boardingName,
         dropOffPoint: dropOffName,
       },
@@ -62,8 +62,29 @@ const PaymentPage = () => {
       discount: store.discount,
       total: total,
     }
+    const body = {
+      "tripId": store.selectedTrip?.id,
+      "travelDate": store.travelDate,
+      "originProvinceId": store.originProvinceId?.id,
+      "destinationProvinceId": store.destinationProvinceId?.id,
+      "boardingPointId": store.boardingPointId?.id,
+      "dropOffPointId": store.dropOffPointId?.id,
+      "passengers": store.passengers.map((passenger) => {
+        return {
+          "seatId": passenger.seatId,
+          "seatNumber": passenger.seatNumber,
+          "fullName": passenger.fullName,
+          "thaiId": passenger.thaiId,
+          "phone": passenger.phone,
+          "passengerType": passenger.passengerType
+        }
+      }),
+      "promoCode": store.promoCode
+    }
     const sourceType = store.paymentMethod === "qr" ? "promptpay" : selectedEWallet;
-    navigate("/payment/qr", { state: { sourceType, total, bookingDetail } });
+    console.log("body ", body)
+
+    navigate("/payment/qr", { state: { bookingBody: body, sourceType, total, bookingDetail } });
   }, [navigate, store.paymentMethod, selectedEWallet, total]);
 
   return (
@@ -84,7 +105,7 @@ const PaymentPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">เวลา</span>
-                <span>{store.selectedTrip?.departureTime} - {store.selectedTrip?.arrivalTime}</span>
+                <span>{store.selectedTrip?.departure_time} - {store.selectedTrip?.arrival_time}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">จุดขึ้นรถ</span>
@@ -100,7 +121,7 @@ const PaymentPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">ประเภทรถ</span>
-                <span>{store.selectedTrip?.busType}</span>
+                <span>{store.selectedTrip?.bus_type_id?.name}</span>
               </div>
               <div className="border-t border-border pt-2 mt-2">
                 <div className="flex justify-between">

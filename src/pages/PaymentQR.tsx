@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { supabase } from "@/http/supabase";
 
 const TIMER_SECONDS = 15 * 60; // 15 minutes
 
@@ -30,9 +31,9 @@ const PaymentQRPage = () => {
   const store = useBookingStore();
 
   // ดึง Base URL ของ API (เช่น http://localhost:8080)
-  const baseUrl = import.meta.env.VITE_API_URL;
+  const baseUrl = import.meta.env.VITE_SOCKET_URL;
 
-  const { sourceType, total, bookingDetail } = (location.state as any) || {
+  const { sourceType, total, bookingDetail, bookingBody } = (location.state as any) || {
     sourceType: "promptpay",
     total: 0,
   };
@@ -59,14 +60,7 @@ const PaymentQRPage = () => {
     // 2. ตั้งค่า Client
     const client = new Client({
       brokerURL: `${socketUrl}/ws-payment`,
-      // webSocketFactory: () => new SockJS(`${baseUrl}/ws-payment`, null, {
-      //   sessionId: () => {
-      //     return Math.random().toString(36).substring(2); // สุ่ม ID ใหม่ทุกครั้งที่ต่อ
-      //   },
-      //   transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
-      //   // ลองปิดการใช้ Credentials ถ้าฝั่ง Server ไม่ได้ใช้ Session/Cookie
-      //   // แต่ส่วนใหญ่การแก้ที่ Server (Spring Boot) จะชัวร์กว่า
-      // }),
+
       debug: (msg) => console.log("STOMP:", msg),
       reconnectDelay: 5000, // ลองต่อใหม่ทุก 5 วินาทีถ้าหลุด
       heartbeatIncoming: 4000,
@@ -127,6 +121,23 @@ const PaymentQRPage = () => {
         setChargeId(response.data?.chargeId);
         setQrUrl(response.data.qrCodeUrl);
 
+        await supabase.from("bookings").insert({
+          booking_reference: id,
+          user_id: liff.getProfile().then((profile) => profile.userId),
+          trip_id: bookingBody?.tripId,
+          phone: bookingBody?.passengers[0].phone,
+          email: "",
+          total_amount: total,
+          discount_amount: 0,
+          final_amount: total,
+          promotion_id: "",
+          pickup_stop: bookingBody?.boardingPointId,
+          dropoff_stop: bookingBody?.dropOffPointId,
+          status: "booking",
+          payment_status: "pending",
+          payment_method: "promptpay",
+          booked_at: new Date().toISOString(),
+        });
         // เปลี่ยนจากการทำ Interval มาใช้ WebSocket แทน
         connectWebSocket(orderId);
       } catch (err: any) {

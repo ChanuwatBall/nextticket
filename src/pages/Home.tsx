@@ -14,9 +14,11 @@ import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import "../css/Home.css";
 import { mockPromotions } from "@/data/mockData";
-import { getRoutes, getProvinces, getPromotions, Province } from "@/services/api";
+// import { getRoutes, getProvinces, getPromotions, Province } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/http/supabase";
+import { login, loginWithLine } from "@/services/api";
+import liff from "@line/liff";
 
 const Home = () => {
   const store = useBookingStore();
@@ -50,21 +52,24 @@ const Home = () => {
 
   const handleBooking = () => {
     // Set route
-    if (selectedRouteId) store.setRoute(selectedRouteId);
-    // Set origin province
-    const originP = provinces.find(p => p.origin === startpoint);
-    console.log("originP ", originP)
-    if (originP) store.setOriginProvince(originP.id);
-    // Set destination province
-    const destP = provinces.find(p => p.destination === destination);
-    console.log("destP ", destP)
-    if (destP) store.setDestinationProvince(destP.id);
-    // Set date
-    if (date) store.setTravelDate(format(date, "yyyy-MM-dd"));
+    // if (selectedRouteId) store.setRoute(selectedRouteId);
+    // // Set origin province
+    // const originP = provinces.find(p => p.origin === startpoint);
+    // console.log("originP ", originP)
+    // if (originP) store.setOriginProvince(originP.id);
+    // // Set destination province
+    // const destP = provinces.find(p => p.destination === destination);
+    // console.log("destP ", destP)
+    // if (destP) 
+    // store.setDestinationProvince(destP);
+    // // Set date
+    // if (date) 
+    store.setTravelDate(format(date, "yyyy-MM-dd"));
     navigate("/ticket");
   };
 
   useEffect(() => {
+
     const conf = async () => {
       try {
         const res = await supabase.from("routes").select("*")
@@ -100,20 +105,20 @@ const Home = () => {
   }, [routes, store?.routeGroupid])
 
   const filteredProvinceByOrigin = useMemo(() => {
-    return store?.routeGroupid ? 
-    provinces.filter((r) => store?.routeGroupid ? r.region_id == store?.routeGroupid : true).
-    filter((r) => store?.originProvinceId ? r.id == store?.originProvinceId : true)
-    : provinces
+    return store?.routeGroupid ?
+      provinces.filter((r) => store?.routeGroupid ? r.region_id == store?.routeGroupid : true).
+        filter((r) => store?.originProvinceId ? r.id == store?.originProvinceId : true)
+      : provinces
   }, [provinces, store?.originProvinceId])
 
- 
 
-  const filteredProvinceByDestination = useMemo(() => { 
-    const filtered =  provinces.filter(r => store.originProvinceId ? r.id !== store.originProvinceId?.id : true)
+
+  const filteredProvinceByDestination = useMemo(() => {
+    const filtered = provinces.filter(r => store.originProvinceId ? r.id !== store.originProvinceId?.id : true)
     return filtered
   }, [provinces, store?.originProvinceId])
 
-  
+
   const selectRoute = (route: any) => {
     console.log("route ", route)
     store.setRoute(`${route.origin} - ${route.destination}`);
@@ -172,7 +177,7 @@ const Home = () => {
                 ))}
               </div>
               <div>
-               
+
 
                 <div className="space-y-1.5 mt-3">
                   <label className="text-sm font-medium text-muted-foreground ">
@@ -227,18 +232,18 @@ const Home = () => {
                     {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenDestination(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
                         {filteredProvinceByDestination.map((p) => (
-                            <li
-                              key={p.id}
-                              className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
-                              onClick={() => {
-                                setDestination(p);
-                                setOpenDestination(false);
-                                store.setDestinationProvince(p);
-                              }}
-                            >
-                              {p.name}
-                            </li>
-                          ))}
+                          <li
+                            key={p.id}
+                            className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
+                            onClick={() => {
+                              setDestination(p);
+                              setOpenDestination(false);
+                              store.setDestinationProvince(p);
+                            }}
+                          >
+                            {p.name}
+                          </li>
+                        ))}
                       </ul>
                     </div>}
                   </div>

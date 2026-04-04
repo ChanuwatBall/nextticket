@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import PromotionDetail from "./pages/PromotionDetail";
 import { supabase } from "./http/supabase";
+import { loginWithLine } from "./services/api";
 
 const queryClient = new QueryClient();
 
@@ -40,33 +41,62 @@ const App = () => {
       .init({
         liffId: import.meta.env.VITE_LIFF_ID,
       })
-      .then(() => {
+      .then(async () => {
         console.log("LIFF init succeeded");
         const isLoggedIn = liff.isLoggedIn();
-        if(!isLoggedIn){
+        if (!isLoggedIn) {
           liff.login();
-        } 
-        
+        }
+
         const storedProfile = localStorage.getItem("userProfile");
         if (storedProfile) {
           console.log("Loaded user profile from localStorage:", JSON.parse(storedProfile));
+          const p = JSON.parse(storedProfile)
+          const ltoken = await liff.getAccessToken()
+          // const res = await loginWithLine({ lineAccessToken: ltoken })
+          // console.log("res line signin : ", res)
+          // const res = await supabase.auth.signInWithIdToken({
+          //   provider: "line",
+          //   token: ltoken,
+          //   nonce: "random-string-for-security",
+          // })
+          // console.log("res line signin : ", res)
+
+          console.log("p?.userId ", p?.userId)
+          const user = await supabase.from("users").select("*")
+            .match({
+              "line_user_id": JSON.stringify(p?.userId),
+              "is_active": true
+            })
+          console.log("user ", user)
+
+          const res = await supabase.from("users").update({
+            full_name: p.displayName,
+            avatar_url: p.pictureUrl
+          }).eq("line_user_id", p?.userId)
+            .eq("is_active", true)
+
+          console.log("res ", res)
         } else {
           console.log("No user profile found in localStorage");
           liff.getProfile().then(async (profile) => {
             console.log("User profile:", profile);
             localStorage.setItem("userProfile", JSON.stringify(profile));
+            const ltoken = await liff.getAccessToken()
+            // const res = await loginWithLine({ lineAccessToken: ltoken })
+            // console.log("res line signin : ", res)
 
-            const { data, error } = await supabase.from("profiles").upsert({
-              line_id: profile.userId,
-              name: profile.displayName,
-              picture: profile.pictureUrl,
-            });
-            if (error) {
-              throw error
-            }
-            console.log("data ",data)
+            // const { data, error } = await supabase.from("profiles").upsert({
+            //   line_id: profile.userId,
+            //   name: profile.displayName,
+            //   picture: profile.pictureUrl,
+            // });
+            // if (error) {
+            //   throw error
+            // }
+            // console.log("data ",data)
           });
-        } 
+        }
       })
       .catch((e: Error) => {
         console.error("LIFF init failed", e);
@@ -75,34 +105,34 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/ticket" element={<Ticket />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/seats" element={<SeatSelection />} />
-          <Route path="/passengers" element={<PassengerInfo />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/payment/qr" element={<PaymentQR />} />
-          <Route path="/e-ticket" element={<ETicket />} />
-          <Route path="/my-tickets" element={<MyTickets />} />
-          <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
-          <Route path="/promotions" element={<Promotions />} /> 
-          <Route path="/promotions/:promoId" element={<PromotionDetail />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/points" element={<Points />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <BottomNav />
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/ticket" element={<Ticket />} />
+            <Route path="/search" element={<SearchResults />} />
+            <Route path="/seats" element={<SeatSelection />} />
+            <Route path="/passengers" element={<PassengerInfo />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/payment/qr" element={<PaymentQR />} />
+            <Route path="/e-ticket" element={<ETicket />} />
+            <Route path="/my-tickets" element={<MyTickets />} />
+            <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
+            <Route path="/promotions" element={<Promotions />} />
+            <Route path="/promotions/:promoId" element={<PromotionDetail />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/points" element={<Points />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <BottomNav />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 

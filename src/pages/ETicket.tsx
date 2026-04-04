@@ -10,14 +10,14 @@ const ETicketPage = () => {
   const store = useBookingStore();
   const navigate = useNavigate();
 
-  const originName = provinces.find((p) => p.id === store.originProvinceId)?.name ?? "";
-  const destName = provinces.find((p) => p.id === store.destinationProvinceId)?.name ?? "";
-  const boardingName = boardingPoints.find((b) => b.id === store.boardingPointId)?.name ?? "";
-  const dropOffName = boardingPoints.find((b) => b.id === store.dropOffPointId)?.name ?? "";
+  const originName = store.originProvinceId?.name
+  const destName = store.destinationProvinceId?.name
+  const boardingName = store.boardingPointId?.name
+  const dropOffName = store.dropOffPointId?.name
   const tripPrice = store.selectedTrip?.price ?? 0;
   const total = Math.max(0, tripPrice * store.selectedSeats.length - store.discount);
 
-  const continueBooking = () => { 
+  const continueBooking = () => {
     navigate("/ticket");
   }
   return (
@@ -25,42 +25,42 @@ const ETicketPage = () => {
       <div className="px-4 space-y-4 pt-4">
         {/* Success Header */}
         <div className="text-center py-4">
-          {store?.paymentStatus === "success" ? 
+          {store?.paymentStatus === "success" ?
             <CheckCircle className="h-16 w-16 mx-auto mb-3 text-[hsl(var(--success))]" /> :
             <ClockAlert className="h-16 w-16 mx-auto mb-3 text-[hsl(var(--destructive))]" />
           }
           <h2 className="text-2xl font-bold"> {store?.paymentStatus === "success" ? "การจองสำเร็จ!" : "การจองไม่สำเร็จ"}</h2>
-           {store?.paymentStatus === "success"  && <p className="text-muted-foreground mt-1">หมายเลขการจอง: <span className="font-bold text-foreground">{store.bookingId}</span></p> }
+          {store?.paymentStatus === "success" && <p className="text-muted-foreground mt-1">หมายเลขการจอง: <span className="font-bold text-foreground">{store.bookingId}</span></p>}
         </div>
 
         {/* QR Code mock */}
-       {store?.paymentStatus === "success" && <Card>
+        {store?.paymentStatus === "success" && <Card>
           <CardContent className="p-6 flex flex-col items-center">
             <div className="bg-card border-2 border-border rounded-xl p-4 mb-3">
               <QrCode className="h-32 w-32 text-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
           </CardContent>
-        </Card> }
+        </Card>}
 
         {/* Booking Details */}
-         
-          <Card>
-            <CardContent className="p-4 space-y-2 text-sm">
-              <h3 className="font-bold text-base mb-2">รายละเอียดการจอง</h3>
-              <div className="flex justify-between"><span className="text-muted-foreground">เส้นทาง</span><span className="font-medium">{originName} → {destName}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">วันที่</span><span>{store.travelDate}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">เวลา</span><span>{store.selectedTrip?.departureTime} - {store.selectedTrip?.arrivalTime}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">จุดขึ้นรถ</span><span>{boardingName}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">จุดลงรถ</span><span>{dropOffName}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">ที่นั่ง</span><span>{store.selectedSeats.map((s) => s.number).join(", ")}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">ประเภทรถ</span><span>{store.selectedTrip?.busType}</span></div>
-             {store?.paymentStatus === "success" && <div className="border-t border-border pt-2 mt-2">
-                <div className="flex justify-between font-bold text-lg"><span>ยอดชำระ</span><span className="text-primary">฿{total}</span></div>
-              </div>}
-            </CardContent>
-          </Card>
-         
+
+        <Card>
+          <CardContent className="p-4 space-y-2 text-sm">
+            <h3 className="font-bold text-base mb-2">รายละเอียดการจอง</h3>
+            <div className="flex justify-between"><span className="text-muted-foreground">เส้นทาง</span><span className="font-medium">{originName} → {destName}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">วันที่</span><span>{store.travelDate}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">เวลา</span><span>{store.selectedTrip?.departure_time} - {store.selectedTrip?.arrival_time}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">จุดขึ้นรถ</span><span>{boardingName}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">จุดลงรถ</span><span>{dropOffName}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">ที่นั่ง</span><span>{store.selectedSeats.map((s) => s.number).join(", ")}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">ประเภทรถ</span><span>{store.selectedTrip?.bus_type_id?.name}</span></div>
+            {store?.paymentStatus === "success" && <div className="border-t border-border pt-2 mt-2">
+              <div className="flex justify-between font-bold text-lg"><span>ยอดชำระ</span><span className="text-primary">฿{total}</span></div>
+            </div>}
+          </CardContent>
+        </Card>
+
 
         {/* Passenger List */}
         {store?.paymentStatus === "success" && store.passengers.length > 0 && (
@@ -80,29 +80,29 @@ const ETicketPage = () => {
         {/* Action Buttons */}
         {store?.paymentStatus === "success" && (
           <div className="space-y-2">
-            <Button variant="outline" className="w-full h-12" onClick={() => {}}>
+            <Button variant="outline" className="w-full h-12" onClick={() => { }}>
               <Download className="mr-2 h-4 w-4" />
               ดาวน์โหลด PDF
             </Button>
-            <Button variant="outline" className="w-full h-12" onClick={() => {}}>
-            <Mail className="mr-2 h-4 w-4" />
-            ส่งไปยังอีเมล
-          </Button>
-          
-        </div> )}
-         <div className="space-y-2 pt-4">
-          { store?.paymentStatus !== "success" && 
-            <Button className="w-full h-12 font-bold" onClick={() => { continueBooking(); }}> 
+            <Button variant="outline" className="w-full h-12" onClick={() => { }}>
+              <Mail className="mr-2 h-4 w-4" />
+              ส่งไปยังอีเมล
+            </Button>
+
+          </div>)}
+        <div className="space-y-2 pt-4">
+          {store?.paymentStatus !== "success" &&
+            <Button className="w-full h-12 font-bold" onClick={() => { continueBooking(); }}>
               ทำรายการใหม่
             </Button>
           }
-         <Button
+          <Button
             className="w-full h-12 font-bold" variant="outline"
             onClick={() => { store.reset(); navigate("/"); }}
           >
             กลับหน้าแรก
-          </Button> 
-          </div>
+          </Button>
+        </div>
       </div>
     </BookingLayout>
   );

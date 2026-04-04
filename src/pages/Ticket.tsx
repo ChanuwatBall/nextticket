@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 // import { boardingPoints } from "@/data/mockData";
-import { getRoutes, getProvinces, Province, Route, getBoardingPoints, BoardingPoint } from "@/services/api";
+// import { getRoutes, getProvinces, Province, Route, getBoardingPoints, BoardingPoint } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/http/supabase";
 
@@ -25,14 +25,18 @@ const Ticket = () => {
   const [rgId, setRgId] = useState<any>(null);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [routes, setRoute] = useState<any[]>([]);
-  const [boardingPoints, setBoardingPoints] = useState<BoardingPoint[]>([]);
+  const [boardingPoints, setBoardingPoints] = useState<[]>([]);
   const [selectOrigin, setSelectOrigin] = useState<any>(null);
   const [selectDest, setSelectDest] = useState<any>(null);
   const [originBoardingPoints, setOriginBoardingPoints] = useState<any[]>([]);
+  const [openOriginBoardingPoints, setOpenOriginBoardingPoints] = useState(false);
   const [destBoardingPoints, setDestBoardingPoints] = useState<any[]>([]);
   const [openOrigin, setOpenOrigin] = useState(false);
   const [startpoint, setStartpoint] = useState("");
-  const [droppoints , setDropPoints] = useState([])
+  const [droppoints, setDropPoints] = useState([])
+  const [openDestination, setOpenDestination] = useState(false);
+  const [destination, setDestination] = useState("");
+  const [openDestinationBoardingPoints, setOpenDestinationBoardingPoints] = useState(false);
 
 
 
@@ -52,47 +56,58 @@ const Ticket = () => {
         supabase.from("provinces").select("*").then(res => {
           console.log(res.data)
           setProvinces(res.data)
+
         })
       } catch (error) {
         throw error
       }
 
       try {
-             supabase.from("boarding_points").select("*").then(
-              res=>{
-                console.log("res boarding_points ",res.data)
-                setDropPoints(res.data)
-              }
-            )
+        supabase.from("boarding_points").select("*").then(
+          res => {
+            console.log("res boarding_points ", res.data)
+            setDropPoints(res.data)
+
+            if (store?.originProvinceId) {
+              chooseOrigin(store.originProvinceId?.id, res.data)
+            }
+
+            if (store?.destinationProvinceId) {
+              chooseDest(store.destinationProvinceId?.id, res.data)
+            }
+          }
+        )
       } catch (error) {
         throw error
       }
-      
+
+
+
     }
     conf()
   }, [store])
 
-  const chooseOrigin = async (province_id: any) => {
+  const chooseOrigin = async (province_id: any, droppoints: any[]) => {
     console.log("province_id ", province_id)
     try {
-          const ress = droppoints.filter(r=>r.province_id === province_id)
-          console.log("droppoints origin ",  ress )
-          setOriginBoardingPoints(ress)
-      } catch (error) {
-        throw error
-      }
+      const ress = droppoints.filter(r => r.province_id === province_id)
+      console.log("droppoints origin ", ress)
+      setOriginBoardingPoints(ress)
+    } catch (error) {
+      throw error
+    }
   }
 
-  
-  const chooseDest = async (province_id: any) => {
+
+  const chooseDest = async (province_id: any, droppoints: any[]) => {
     console.log("province_id ", province_id)
     try {
-          const ress = droppoints.filter(r=>r.province_id === province_id)
-          console.log("droppoints dest ",await ress )
-          setDestBoardingPoints(ress)
-      } catch (error) {
-        throw error 
-      }
+      const ress = droppoints.filter(r => r.province_id === province_id)
+      console.log("droppoints dest ", await ress)
+      setDestBoardingPoints(ress)
+    } catch (error) {
+      throw error
+    }
   }
 
 
@@ -104,7 +119,6 @@ const Ticket = () => {
 
 
   const canSearch =
-    store.routeId &&
     date &&
     store.originProvinceId &&
     store.destinationProvinceId &&
@@ -139,19 +153,19 @@ const Ticket = () => {
           <label className="text-sm font-medium text-muted-foreground ">
             ต้นทาง
           </label>
-          <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}> 
+          <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}>
             <div className="flex items-center gap-1 h-10 w-full items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-            <input
-              type="text"
-              value={store.originProvinceId?.name}
-              placeholder="เลือกต้นทาง"
-              onFocus={() => setOpenOrigin(true)}
-              onChange={(e) =>{ setStartpoint(e.target.value);}}
-              onBlur={() => setTimeout(() => setOpenOrigin(false), 150)} 
-              className="h-10 w-full bg-transparent  px-3 py-2"
-            > 
-            </input>
-            <ChevronDown className="h-4 w-4 opacity-50" />
+              <input
+                type="text"
+                value={store.originProvinceId?.name}
+                placeholder="เลือกต้นทาง"
+                onFocus={() => setOpenOrigin(true)}
+                onChange={(e) => { setStartpoint(e.target.value); }}
+                onBlur={() => setTimeout(() => setOpenOrigin(false), 150)}
+                className="h-10 w-full bg-transparent  px-3 py-2"
+              >
+              </input>
+              <ChevronDown className="h-4 w-4 opacity-50" />
             </div>
             {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
               <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
@@ -160,7 +174,7 @@ const Ticket = () => {
                     key={p.id}
                     className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
                     onClick={() => {
-                      chooseOrigin(p.id)
+                      chooseOrigin(p.id, droppoints)
                       setStartpoint(p.origin);
                       setOpenOrigin(false);
                       store.setOriginProvince(p);
@@ -190,7 +204,7 @@ const Ticket = () => {
         </div> */}
 
         {/* Boarding Point */}
-        {store.originProvinceId && (
+        {/* {store.originProvinceId && (
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">จุดขึ้นรถ</label>
             <Select value={store.boardingPointId} onValueChange={store.setBoardingPoint}>
@@ -204,10 +218,86 @@ const Ticket = () => {
               </SelectContent>
             </Select>
           </div>
-        )}
+        )} */}
+        {
+          store.originProvinceId && (
+            <div className="space-y-1.5 mt-3">
+              <label className="text-sm font-medium text-muted-foreground ">
+                จุดขึ้นรถ
+              </label>
+              <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}>
+                <div className="flex items-center gap-1 h-10 w-full items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                  <input
+                    type="text"
+                    value={store.boardingPointId?.name}
+                    placeholder="เลือกจุดขึ้นรถ"
+                    onFocus={() => setOpenOriginBoardingPoints(true)}
+                    onChange={(e) => { setStartpoint(e.target.value); }}
+                    onBlur={() => setTimeout(() => setOpenOriginBoardingPoints(false), 150)}
+                    className="h-10 w-full bg-transparent  px-3 py-2"
+                  >
+                  </input>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </div>
+                {openOriginBoardingPoints && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOriginBoardingPoints(false)}>
+                  <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
+                    {originBoardingPoints.map((p) => (
+                      <li
+                        key={p.id}
+                        className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
+                        onClick={() => {
+                          store.setBoardingPoint(p);
+                        }}
+                      >
+                        {p.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>}
+              </div>
+            </div>
+          )
+        }
 
         {/* Destination */}
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 mt-3">
+          <label className="text-sm font-medium text-muted-foreground ">
+            ปลายทาง
+          </label>
+          <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}>
+            <div className="flex items-center gap-1 h-10 w-full items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+              <input
+                type="text"
+                value={store.destinationProvinceId?.name}
+                placeholder="เลือกปลายทาง  "
+                onFocus={() => setOpenDestination(true)}
+                // onChange={(e) => { setStartpoint(e.target.value); }}
+                onBlur={() => setTimeout(() => setOpenDestination(false), 150)}
+                className="h-10 w-full bg-transparent  px-3 py-2"
+              >
+              </input>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </div>
+            {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
+              <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
+                {provinces.map((p) => (
+                  <li
+                    key={p.id}
+                    className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
+                    onClick={() => {
+                      chooseDest(p.id, droppoints)
+                      store.setDestinationProvince(p);
+                      setOpenDestination(false);
+                    }}
+                  >
+                    {p.name}
+                  </li>
+                ))}
+              </ul>
+            </div>}
+          </div>
+        </div>
+        {/* <div className="space-y-1.5">
           <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" /> ปลายทาง
           </label>
@@ -221,13 +311,53 @@ const Ticket = () => {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </div> */}
 
         {/* Drop-off Point */}
-        {store.destinationProvinceId && (
+        {
+          store.destinationProvinceId && (
+            <div className="space-y-1.5 mt-3">
+              <label className="text-sm font-medium text-muted-foreground ">
+                จุดลงรถ
+              </label>
+              <div className={cn("w-full h-12 justify-start font-normal relative flex items-center gap-1")}>
+                <div className="flex items-center gap-1 h-10 w-full items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                  <input
+                    type="text"
+                    value={store.dropOffPointId?.name}
+                    placeholder="เลือกจุดลงรถ"
+                    onFocus={() => setOpenDestinationBoardingPoints(true)}
+                    onChange={(e) => { setDestination(e.target.value); }}
+                    onBlur={() => setTimeout(() => setOpenDestinationBoardingPoints(false), 150)}
+                    className="h-10 w-full bg-transparent  px-3 py-2"
+                  >
+                  </input>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </div>
+                {openDestinationBoardingPoints && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOriginBoardingPoints(false)}>
+                  <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
+                    {destBoardingPoints.map((p) => (
+                      <li
+                        key={p.id}
+                        className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
+                        onClick={() => {
+                          store.setDropOffPoint(p);
+                          setOpenDestinationBoardingPoints(false);
+                        }}
+                      >
+                        {p.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>}
+              </div>
+            </div>
+          )
+        }
+        {/* {store.destinationProvinceId && (
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">จุดลงรถ</label>
-            <Select value={store.dropOffPointId} onValueChange={store.setDropOffPoint}>
+            <Select value={store.dropOffPointId} onValueChange={(v)=>store.setDropOffPoint(v)}>
               <SelectTrigger className="h-12">
                 <SelectValue placeholder="เลือกจุดลงรถ" />
               </SelectTrigger>
@@ -238,7 +368,7 @@ const Ticket = () => {
               </SelectContent>
             </Select>
           </div>
-        )}
+        )} */}
         {/* Date */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-muted-foreground">วันที่เดินทาง</label>
