@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -97,17 +97,17 @@ const statusConfig = {
 };
 
 const MyTicketsPage = () => {
-
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState<Ticket[]>([])
 
   const getTickets = async () => {
     try {
       const userstr = localStorage.getItem("user")
-      const user = JSON.parse(userstr || "{}")?.user
+      const user = JSON.parse(userstr || "{}")
       console.log("user ", user)
       const { data, error } = await supabase.from("bookings")
         .select("* , trips(*) ")
-        .eq("user_id", user?.id)
+        .eq("user_id", user?.user?.id)
       if (error) {
         throw error
       }
@@ -132,7 +132,7 @@ const MyTicketsPage = () => {
     getTickets()
   }, [])
   return (
-    <BookingLayout showSteps={false} title="ตั๋วของฉัน">
+    <BookingLayout showSteps={false} title="ตั๋วของฉัน" navto={() => navigate(-1)}  >
       <div className="px-4">
         <Tabs defaultValue="all">
           <TabsList className="w-full mb-4">

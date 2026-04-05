@@ -10,9 +10,22 @@ const menuItems = [
   { label: "สะสมแต้ม", icon: Star, to: "/points" },
   { label: "กระเป๋าเงิน", icon: Wallet, to: "/wallet" },
 ];
-
+type User = {
+  "token": string,
+  "user": {
+    "id": string,
+    "fullName": string,
+    "phone": string,
+    "email": string,
+    "lineUserId": string,
+    "avatarUrl": string,
+    "points": number,
+    "walletBalance": number,
+    "memberSince": string
+  }
+}
 const Profile = () => {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
 
   useEffect(() => {
@@ -20,7 +33,7 @@ const Profile = () => {
       const user = localStorage.getItem("user")
       if (user) {
         console.log("user ", JSON.parse(user) ?? "")
-        setUser(JSON.parse(user)?.user ?? null)
+        setUser(JSON.parse(user) ?? null)
       }
     }
     conf()
@@ -44,15 +57,21 @@ const Profile = () => {
         {/* Avatar */}
         <div className="flex flex-col items-center py-6">
           <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-3">
-            <User className="h-10 w-10 text-muted-foreground" />
+            {
+              user && user?.user?.avatarUrl ? (
+                <img src={user?.user?.avatarUrl} alt="avatar" className="h-30 w-30 rounded-full" />
+              ) : (
+                <User className="h-10 w-10 text-muted-foreground" />
+              )
+            }
           </div>
 
           <h2 className="text-lg font-bold">
             {
-              user && user?.email ? user?.email : "ผู้ใช้ทั่วไป"
+              user && user?.user?.fullName ? user?.user?.fullName : "ผู้ใช้ทั่วไป"
             }
           </h2>
-          <p className="text-sm text-muted-foreground">{user ? user?.phone : "ยังไม่ได้เข้าสู่ระบบ"}</p>
+          <p className="text-sm text-muted-foreground">{user ? user?.user.phone : "ยังไม่ได้เข้าสู่ระบบ"}</p>
           <div className="flex gap-3 mt-4 w-full max-w-xs">
             {
               !user && <Button asChild className="flex-1" size="lg">
