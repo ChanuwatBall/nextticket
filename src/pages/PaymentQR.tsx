@@ -24,10 +24,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/http/supabase";
 import moment from "moment";
+import { useToast } from "@/hooks/use-toast";
 
 const TIMER_SECONDS = 10 * 60; // 15 minutes
 
 const PaymentQRPage = () => {
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const setPaymentStatus = useBookingStore((s) => s.setPaymentStatus);
@@ -281,6 +283,11 @@ const PaymentQRPage = () => {
         console.log("bookingPayload ", bookingPayload)
         const bookingres = await createBooking(bookingPayload)
         console.log("bookingres ", bookingres)
+        if (bookingres.error) {
+          toast({ title: "ไม่สามารถจองตั๋วได้", description: bookingres.error, variant: "destructive", duration: 5000 });
+          await cancelCharge(payqr.chargeId)
+          return
+        }
         setBookingId(bookingres.bookingId)
         // console.log("bookingbody ", bookingbody)
         const qrBookingPayload = JSON.stringify({

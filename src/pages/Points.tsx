@@ -4,19 +4,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useEffect, useState } from "react";
+import { getpointHistory, userPoints } from "@/services/api";
 
 const mockPointsHistory = [
   { id: "1", description: "จอง กรุงเทพ → เชียงใหม่", date: "28 ก.พ. 2026", amount: 850, points: 8, type: "earn" as const },
   { id: "2", description: "จอง กรุงเทพ → สุราษฎร์ธานี", date: "15 ก.พ. 2026", amount: 650, points: 6, type: "earn" as const },
-  { id: "3", description: "แลกแต้มเป็นเงิน Wallet", date: "10 ก.พ. 2026", amount: 0, points: -20, type: "redeem" as const },
+  { id: "3", description: "แลกแต้มเป็นส่วนลด 10 บาท", date: "10 ก.พ. 2026", amount: 0, points: -20, type: "redeem" as const },
   { id: "4", description: "จอง กรุงเทพ → ขอนแก่น", date: "5 ก.พ. 2026", amount: 450, points: 4, type: "earn" as const },
   { id: "5", description: "จอง กรุงเทพ → หาดใหญ่", date: "1 ก.พ. 2026", amount: 1200, points: 12, type: "earn" as const },
 ];
 
 const Points = () => {
-  const totalPoints = 156;
-  const nextRewardAt = 200;
-  const progressPercent = (totalPoints / nextRewardAt) * 100;
+  const [points, setPoints] = useState<{
+    totalPoints: number;
+    nextRewardAt: number;
+    rewardValue: number;
+  } | null>(null)
+  const [progressPercent, setProgressPercent] = useState<number>(0)
+  // const totalPoints = 156;
+  // const nextRewardAt = 200;
+  // const progressPercent = (totalPoints / nextRewardAt) * 100;
+
+  const getpoints = async () => {
+    const usrp = await userPoints()
+    console.log("usrp ", usrp)
+    setPoints(usrp)
+    setProgressPercent((usrp.totalPoints / usrp.nextRewardAt) * 100)
+  }
+
+  const getHistory = async () => {
+    const phis = await getpointHistory()
+    console.log("phis ", phis)
+  }
+  useEffect(() => {
+    getpoints()
+    getHistory()
+  }, [])
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20">
@@ -36,7 +60,7 @@ const Points = () => {
               <Star className="h-8 w-8 text-primary fill-primary" />
             </div>
             <p className="text-sm text-muted-foreground">แต้มสะสมของคุณ</p>
-            <p className="text-4xl font-bold text-primary mt-1">{totalPoints}</p>
+            <p className="text-4xl font-bold text-primary mt-1">{points?.totalPoints}</p>
             <p className="text-xs text-muted-foreground mt-1">แต้ม</p>
           </CardContent>
         </Card>
@@ -47,13 +71,13 @@ const Points = () => {
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-1">
                 <Gift className="h-4 w-4" />
-                รางวัลถัดไปที่ {nextRewardAt} แต้ม
+                รางวัลถัดไปที่ {points?.nextRewardAt} แต้ม
               </span>
-              <span className="font-bold text-primary">{totalPoints}/{nextRewardAt}</span>
+              <span className="font-bold text-primary">{points?.totalPoints}/{points?.nextRewardAt}</span>
             </div>
             <Progress value={progressPercent} className="h-3" />
             <p className="text-xs text-muted-foreground text-center">
-              อีก <span className="font-semibold text-foreground">{nextRewardAt - totalPoints} แต้ม</span> จะได้รับส่วนลด 50 บาท
+              อีก <span className="font-semibold text-foreground">{points?.nextRewardAt - points?.totalPoints} แต้ม</span> จะได้รับส่วนลด 50 บาท
             </p>
           </CardContent>
         </Card>
@@ -98,12 +122,12 @@ const Points = () => {
         </Card>
 
         {/* Redeem CTA */}
-        <Link
+        {/* <Link
           to="/wallet"
           className="block w-full rounded-xl bg-primary text-primary-foreground text-center py-3 font-bold shadow-md hover:opacity-90 transition-opacity"
         >
           แลกแต้มเป็นเงิน Wallet
-        </Link>
+        </Link> */}
 
         {/* Points History */}
         <Card>

@@ -126,7 +126,7 @@ const Ticket = () => {
   };
 
   return (
-    <BookingLayout currentStep={1} navto={() => navigate("/")} title="จองตั๋วรถโดยสาร">
+    <BookingLayout currentStep={1} navto={() => navigate(-1)} title="จองตั๋วรถโดยสาร">
       <div className="px-4 space-y-4">
         <div className="grid  " >
           <div className="scrollbar flex-shrink-0 flex " style={{ width: "100%", overflowX: "scroll" }}>

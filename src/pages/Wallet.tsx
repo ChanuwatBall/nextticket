@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getWalletPoint } from "@/services/api";
+import { useEffect, useState } from "react";
 
 const mockTransactions = [
   { id: "1", description: "จ่ายค่าตั๋ว กรุงเทพ → เชียงใหม่", date: "28 ก.พ. 2026", amount: -850, type: "payment" as const },
@@ -33,8 +35,23 @@ const getTransactionLabel = (type: string) => {
 };
 
 const Wallet = () => {
-  const balance = 350;
-  const availablePoints = 156;
+  const [balance, setBalance] = useState(0);
+  const [availablePoints, setAvailablePoints] = useState(0);
+  const [transactions, setTransaction] = useState(mockTransactions)
+
+  const getwalletspoint = async () => {
+    const res = await getWalletPoint()
+    console.log("res wallet point ", res)
+    if (res) {
+      setBalance(res.balance)
+      setAvailablePoints(res.point)
+      setTransaction(res.transactions && res.transactions.length > 0 ? res.transactions : mockTransactions)
+    }
+  }
+
+  useEffect(() => {
+    getwalletspoint()
+  }, [])
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20">
@@ -93,13 +110,13 @@ const Wallet = () => {
         </div>
 
         {/* Redeem Points Banner */}
-        <Card className="bg-accent/50 border-primary/20">
+        {availablePoints > 0 && <Card className="bg-accent/50 border-primary/20">
           <CardContent className="py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Star className="h-6 w-6 text-primary fill-primary" />
               <div>
                 <p className="text-sm font-semibold">แลก {availablePoints} แต้ม</p>
-                <p className="text-xs text-muted-foreground">รับ ฿{Math.floor(availablePoints / 10) * 25} เข้า Wallet</p>
+                <p className="text-xs text-muted-foreground">รับ ฿{availablePoints > 0 ? Math.floor(availablePoints / 10) * 25 : 0} เข้า Wallet</p>
               </div>
             </div>
             <Button size="sm" variant="default" className="rounded-full text-xs">
@@ -107,6 +124,7 @@ const Wallet = () => {
             </Button>
           </CardContent>
         </Card>
+        }
 
         {/* Transaction History */}
         <Card>
@@ -118,7 +136,7 @@ const Wallet = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
-              {mockTransactions.map((tx) => (
+              {transactions && transactions.length > 0 ? transactions.map((tx) => (
                 <div key={tx.id} className="flex items-center gap-3 px-4 py-3">
                   {getTransactionIcon(tx.type)}
                   <div className="flex-1 min-w-0">
@@ -134,7 +152,11 @@ const Wallet = () => {
                     {tx.amount > 0 ? "+" : ""}฿{Math.abs(tx.amount).toLocaleString()}
                   </span>
                 </div>
-              ))}
+              )) :
+                <div className="flex items-center justify-center py-10 ">
+                  <p className="text-sm text-muted-foreground">ไม่พบประวัติธุรกรรม</p>
+                </div>
+              }
             </div>
           </CardContent>
         </Card>

@@ -108,7 +108,7 @@ export const bookingDetail = async ({ id, token }: any) => {
     })
 }
 export const chargeWechatPayment = async (amount: any) => {
-  return await api.post("/api/payment/wechat_pay_mpm", {
+  return await api.post("/api/payment/wechat-pay", {
     amount: amount
   })
     .then((res) => {
@@ -150,6 +150,61 @@ export const paymentStatus = async (chargeId: string) => {
       return err.response.data
     })
 }
+
+export const userPoints = async () => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return await api.get(`/api/points/`, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("userPoints res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("userPoints err ", err)
+      return err.response.data
+    })
+}
+
+export const getpointHistory = async () => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return await api.get(`/api/points/history`, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("getpointHistory res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("getpointHistory err ", err)
+      return err.response.data
+    })
+}
+
+export const getWalletPoint = async () => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return await api.get(`/api/wallet/`, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("getWalletPoint res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("getWalletPoint err ", err)
+      return err.response.data
+    })
+}
+
 // // ─────────────────────────────────────────────
 // // Axios Instance
 // // ─────────────────────────────────────────────
