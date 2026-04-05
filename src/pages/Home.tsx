@@ -19,6 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/http/supabase";
 import { login, loginWithLine } from "@/services/api";
 import liff from "@line/liff";
+import moment from "moment";
 
 const Home = () => {
   const store = useBookingStore();
@@ -33,6 +34,7 @@ const Home = () => {
   const [routesGroup, setRoutesGroup] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
   const [openRoute, setOpenRoute] = useState(false);
+  const [promotions, setPromotions] = useState<any[]>([]);
   // API Queries
 
   // const { data: promotions = [], isLoading: isLoadingPromotions } = useQuery({
@@ -51,19 +53,6 @@ const Home = () => {
 
 
   const handleBooking = () => {
-    // Set route
-    // if (selectedRouteId) store.setRoute(selectedRouteId);
-    // // Set origin province
-    // const originP = provinces.find(p => p.origin === startpoint);
-    // console.log("originP ", originP)
-    // if (originP) store.setOriginProvince(originP.id);
-    // // Set destination province
-    // const destP = provinces.find(p => p.destination === destination);
-    // console.log("destP ", destP)
-    // if (destP) 
-    // store.setDestinationProvince(destP);
-    // // Set date
-    // if (date) 
     store.setTravelDate(format(date, "yyyy-MM-dd"));
     navigate("/ticket");
   };
@@ -71,6 +60,19 @@ const Home = () => {
   useEffect(() => {
 
     const conf = async () => {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: "admin@nexexpress.co.th",
+          password: "nexadmin2026",
+        })
+        if (error) {
+          throw error
+        }
+        console.log("data ", data)
+        localStorage.setItem("user", JSON.stringify(data))
+      } catch (error) {
+        console.log("error ", error)
+      }
       try {
         const res = await supabase.from("routes").select("*")
         setRoutes(res.data)
@@ -94,6 +96,18 @@ const Home = () => {
         })
       } catch (error) {
         throw error
+      }
+
+      try {
+        supabase.from("promotions").select("*")
+          .eq("is_active", true)
+          .gte("valid_to", moment().format("YYYY-MM-DDTHH:mm:ssZ"))
+          .then(res => {
+            console.log("promotions ", res.data)
+            setPromotions(res.data)
+          })
+      } catch (err) {
+
       }
 
     }
@@ -187,7 +201,7 @@ const Home = () => {
                     <MapPin className="h-3.5 w-3.5  text-muted-foreground" />
                     <input
                       type="text"
-                      value={store.originProvinceId?.name}
+                      value={store.originProvinceId?.name || ""}
                       placeholder="เลือกต้นทาง"
                       onFocus={() => setOpenOrigin(true)}
                       onChange={(e) => setStartpoint(e.target.value)}
@@ -222,7 +236,7 @@ const Home = () => {
                     <MapPin className="h-3.5 w-3.5  text-muted-foreground" />
                     <input
                       type="text"
-                      value={store?.destinationProvinceId?.name}
+                      value={store?.destinationProvinceId?.name || ""}
                       placeholder="เลือกปลายทาง"
                       onFocus={() => setOpenDestination(true)}
                       onChange={(e) => { setDestination(e.target.value) }}
@@ -321,13 +335,28 @@ const Home = () => {
               onSlideChange={() => console.log('slide change')}
               onSwiper={(swiper) => console.log(swiper)}
             >
-              {mockPromotions.map((promo) => (
+              {/* {mockPromotions.map((promo) => (
                 <SwiperSlide className="text-left" key={promo.id}>
                   <Link to={`/promotions/${promo.id}`} key={promo.id}>
                     <img src={promo.imageUrl} alt={promo.title} className=" object-cover rounded-xl mb-2" />
                     <span className="m-3 text-sm" >{promo.title}</span>
                   </Link>
-                </SwiperSlide>))}
+                </SwiperSlide>))} */}
+              {
+                promotions && promotions.map((promo) =>
+                  <SwiperSlide className="text-left" key={promo.id}>
+                    <div className={`w-full h-full rounded-xl overflow-hidden relative  bg-gradient-to-r ${promo.bg_color}  `}
+                      style={{ width: "100%", height: "10rem" }}
+                    >
+                      <div className={`absolute inset-0 flex items-center justify-center text-left p-3`}
+                        style={{ flexDirection: "column" }}>
+                        <span className="text-white text-xl font-bold">{promo.title}</span>
+                        <small>{promo?.description}</small>
+                      </div>
+                    </div>
+                  </SwiperSlide>
+                )
+              }
             </Swiper>
           </section>
           <div className="w-100" style={{ height: "6rem" }} ></div>

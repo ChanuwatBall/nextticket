@@ -111,13 +111,6 @@ const Ticket = () => {
   }
 
 
-  const filteredProvinceByDestination = useMemo(() => {
-    const filtered = provinces.filter(r => store.originProvinceId ? r.id !== store.originProvinceId?.id : true)
-    return filtered
-  }, [provinces, store?.originProvinceId])
-
-
-
   const canSearch =
     date &&
     store.originProvinceId &&
@@ -187,38 +180,6 @@ const Ticket = () => {
             </div>}
           </div>
         </div>
-        {/* <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5" /> ต้นทาง
-          </label>
-          <Select value={store.originProvinceId?.id} onValueChange={(e)=>{store.setOriginProvince(provinces.find(p=> p.id == e)) ; console.log("e ", e)}}>
-            <SelectTrigger className="h-12">
-              <SelectValue placeholder="เลือกจังหวัดต้นทาง" />
-            </SelectTrigger>
-            <SelectContent>
-              {provinces.map((p) => (
-                <SelectItem key={p.id} value={p}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div> */}
-
-        {/* Boarding Point */}
-        {/* {store.originProvinceId && (
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-muted-foreground">จุดขึ้นรถ</label>
-            <Select value={store.boardingPointId} onValueChange={store.setBoardingPoint}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="เลือกจุดขึ้นรถ" />
-              </SelectTrigger>
-              <SelectContent>
-                {originBoardingPoints.map((bp) => (
-                  <SelectItem key={bp.id} value={bp.id}>{bp?.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )} */}
         {
           store.originProvinceId && (
             <div className="space-y-1.5 mt-3">

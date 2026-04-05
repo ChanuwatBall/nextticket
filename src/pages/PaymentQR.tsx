@@ -7,8 +7,9 @@ import PageTransition from "@/components/PageTransition";
 import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Timer, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Timer, AlertCircle, CheckCircle2, Store } from "lucide-react";
 import { createCharge, cancelCharge } from "@/services/api";
+import QRCode from "qrcode";
 import liff from "@line/liff";
 
 import {
@@ -22,14 +23,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/http/supabase";
+import moment from "moment";
 
-const TIMER_SECONDS = 15 * 60; // 15 minutes
+const TIMER_SECONDS = 10 * 60; // 15 minutes
 
 const PaymentQRPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const setPaymentStatus = useBookingStore((s) => s.setPaymentStatus);
+  const setBookingId = useBookingStore((s) => s.setBookingId);
+  const resetStore = useBookingStore((s) => s.reset);
   const store = useBookingStore();
-
   // ดึง Base URL ของ API (เช่น http://localhost:8080)
   const baseUrl = import.meta.env.VITE_SOCKET_URL;
 
@@ -50,7 +54,7 @@ const PaymentQRPage = () => {
   const stompClientRef = useRef<Client | null>(null);
 
   // --- ฟังก์ชันเชื่อมต่อ WebSocket ---
-  const connectWebSocket = useCallback((id: string) => {
+  const connectWebSocket = useCallback((id: string) => { // Changed refId to lowercase string type for consistency
     // 1. ตรวจสอบว่ามี connection เดิมอยู่หรือไม่ ถ้ามีให้ปิดก่อน
     if (stompClientRef.current) {
       stompClientRef.current.deactivate();
@@ -69,24 +73,126 @@ const PaymentQRPage = () => {
         console.log("Connected to WebSocket for Order:", id);
 
         // Subscribe ท่อที่ตรงกับ ID (ต้องตรงกับ Java: /topic/order/{id})
-        client.subscribe(`/topic/order/${id}`, (message) => {
+        client.subscribe(`/topic/order/${id}`, async (message) => {
           const payload = JSON.parse(message.body);
           console.log("Payment Notification:", payload);
 
           const status = payload.status.toLowerCase();
-
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
           // อัปเดตสถานะเพื่อเปลี่ยน UI
           if (status === "success") {
+            const qrBookingPayload = JSON.stringify({
+              booking_reference: id
+            });
+            const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+            store.setBookingQrcode(qrBookingCode);
+            const { error: updateError, data: updateData } = await supabase.from("bookings")
+              .update({
+                status: "completed",
+                payment_status: "paid",
+                qr_code: qrBookingCode
+              })
+              .eq("booking_reference", id)
+              .eq("user_id", user.user.id)
+              .select();
+
+            if (updateError) console.error("Supabase update error (success):", updateError);
+            console.log("Update success check:", { id, status, updateData });
+
+            if (updateData && updateData.length > 0) {
+              console.log("booking completed successfully", updateData);
+              const passengers = bookingBody.passengers
+              console.log("passengers ", passengers)
+              for (const passenger of passengers) {
+
+                const ticketBody = {
+                  booking_id: updateData[0].id,
+                  ticket_number: (store.selectedTrip?.id + passenger.seatNumber + moment().format("YYYYMMDDHHmmss")).toUpperCase(),
+                  passenger_name: passenger.fullName,
+                  passenger_phone: passenger.phone,
+                  passenger_id_card: passenger.thaiId,
+                  seat_number: passenger.seatNumber,
+                  passenger_type: passenger.passengerType,
+                  price: store.selectedTrip?.price,
+                  status: "active",
+                  checked_in_at: null,
+                }
+                console.log("ticketBody ", ticketBody)
+                const qrTicketPayload = JSON.stringify(ticketBody);
+                const qrCodeTicket = await QRCode.toDataURL(qrTicketPayload);
+                const {
+                  error: updateError,
+                  data: ticketData
+                } = await supabase.from("tickets")
+                  .insert({
+                    ...ticketBody,
+                    qr_code: qrCodeTicket
+                  })
+                  .select();
+                if (updateError) {
+                  console.error("Supabase update error (success):", updateError);
+                  continue;
+                }
+                if (ticketData && ticketData.length > 0) {
+                  console.log("ticketData ", ticketData)
+                  const seatPayload = {
+                    trip_id: store.selectedTrip?.id,
+                    seat_number: passenger.seatNumber,
+                    seat_type: passenger.seatType,
+                    ticket_id: ticketData[0].id,
+                    booking_id: updateData[0].id,
+                  }
+                  const { error: seatError, data: seatData } = await supabase.from("seats_booking")
+                    .insert(seatPayload)
+                  if (seatError) {
+                    console.error("Supabase update error (success):", seatError);
+                    continue;
+                  }
+                  console.log("seatData ", seatData)
+                }
+              }
+              setQrLoading(false);
+
+            } else {
+              console.warn("No booking found to update for success with reference:", id);
+            }
+
             setChargeStatus("successful");
-            store.setPaymentStatus("success");
-            store.setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
+            setPaymentStatus("success");
+            setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
 
             // หน่วงเวลาให้ User เห็น CheckCircle ก่อนเปลี่ยนหน้า
             setTimeout(() => navigate("/e-ticket"), 2000);
           } else if (status === "failed") {
+            const { error: updateError, data: updateData } = await supabase.from("bookings")
+              .update({
+                status: "cancelled",
+                payment_status: "failed", // Changed to 'failed' to match the situation better than 'refunded' usually
+              })
+              .eq("user_id", user.user.id)
+              .eq("booking_reference", id)
+              .select();
+
+            if (updateError) console.error("Supabase update error (failed):", updateError);
+            console.log("Update failure check:", { id, status, updateData });
+
+            if (updateData && updateData.length > 0) {
+              console.log("booking cancelled successfully", updateData);
+            } else {
+              console.warn("No booking found to update for failure with reference:", id);
+            }
+
             setChargeStatus("failed");
-            store.setPaymentStatus("failed");
+            setPaymentStatus("failed");
           }
+
+          // if (chargeStatus !== "successful" && chargeStatus !== "failed" || timeLeft == 0) {
+          //   const { data, error } = await supabase.from("bookings")
+          //     .update({ status: "cancelled" })
+          //     .eq("booking_reference", refId);
+          //   setChargeStatus("timeup");
+          //   store.setPaymentStatus("failed");
+          // }
         });
       },
       onStompError: (frame) => {
@@ -96,7 +202,7 @@ const PaymentQRPage = () => {
 
     client.activate();
     stompClientRef.current = client;
-  }, [baseUrl, navigate, store]);
+  }, [baseUrl, navigate, setPaymentStatus, setBookingId]); // Stable dependencies
 
   // --- Countdown Timer ---
   useEffect(() => {
@@ -106,9 +212,12 @@ const PaymentQRPage = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const hasInitialized = useRef(false);
+
   // --- Create Charge & Start WebSocket ---
   useEffect(() => {
-    if (total <= 0) return;
+    if (total <= 0 || hasInitialized.current) return;
+    hasInitialized.current = true;
 
     const initPayment = async () => {
       setQrLoading(true);
@@ -117,27 +226,33 @@ const PaymentQRPage = () => {
         const response: any = await createCharge(total, sourceType, bookingDetail);
         const id = response.data.sourceId;
         const orderId = response.data.sourceId || id; // ใช้ order_id จาก metadata
-
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
         setChargeId(response.data?.chargeId);
         setQrUrl(response.data.qrCodeUrl);
-
-        await supabase.from("bookings").insert({
+        const bookingbody = {
           booking_reference: id,
-          user_id: liff.getProfile().then((profile) => profile.userId),
+          user_id: user.user.id,
           trip_id: bookingBody?.tripId,
           phone: bookingBody?.passengers[0].phone,
           email: "",
           total_amount: total,
           discount_amount: 0,
           final_amount: total,
-          promotion_id: "",
+          promotion_id: null,
           pickup_stop: bookingBody?.boardingPointId,
           dropoff_stop: bookingBody?.dropOffPointId,
-          status: "booking",
+          status: "pending",
           payment_status: "pending",
-          payment_method: "promptpay",
+          payment_method: sourceType,
           booked_at: new Date().toISOString(),
-        });
+        }
+        console.log("bookingbody ", bookingbody)
+        const { data, error } = await supabase.from("bookings").insert(bookingbody)
+
+        if (error) {
+          throw error
+        }
+        console.log("inserted booking data ", data)
         // เปลี่ยนจากการทำ Interval มาใช้ WebSocket แทน
         connectWebSocket(orderId);
       } catch (err: any) {
@@ -179,14 +294,14 @@ const PaymentQRPage = () => {
   const seconds = timeLeft % 60;
 
   // --- Render logic ---
-  if (timeLeft === 0 && chargeStatus !== "successful" && chargeStatus !== "faild") {
+  if (timeLeft === 0 && chargeStatus !== "successful" && chargeStatus !== "failed") {
     return (
       <BookingLayout currentStep={5} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
         <div className="px-4 text-center py-16">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
           <h3 className="text-xl font-bold mb-2">หมดเวลาชำระเงิน</h3>
           <p className="text-muted-foreground mb-6">กรุณาทำรายการใหม่อีกครั้ง</p>
-          <Button onClick={() => { store.reset(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
+          <Button onClick={() => { resetStore(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
         </div>
       </BookingLayout>
     );
@@ -199,7 +314,7 @@ const PaymentQRPage = () => {
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
           <h3 className="text-xl font-bold mb-2">ชำระเงินไม่สำเร็จ!</h3>
           <p className="text-muted-foreground">กรุณาทำรายการใหม่อีกครั้ง</p><br />
-          <Button onClick={() => { store.reset(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
+          <Button onClick={() => { resetStore(); navigate("/"); }} className="h-12 px-8">กลับหน้าแรก</Button>
         </div>
       </BookingLayout>
     );

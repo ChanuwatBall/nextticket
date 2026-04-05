@@ -12,11 +12,11 @@ export interface PassengerInfo {
 
 interface BookingState {
   // Step 1
-  routeGroupid:any;
+  routeGroupid: any;
   routeId: any;
   travelDate: any;
-  originProvinceId: {id:any,name:string, name_en:string};
-  destinationProvinceId: {id:string,name:string, name_en:string};
+  originProvinceId: { id: any, name: string, name_en: string };
+  destinationProvinceId: { id: string, name: string, name_en: string };
   boardingPointId: any;
   dropOffPointId: any;
   passengerCount: number;
@@ -35,6 +35,7 @@ interface BookingState {
   // Step 5
   paymentMethod: any;
   bookingId: any;
+  booking_qrcode: string;
   paymentStatus: 'pending' | 'success' | 'failed' | null;
 
   // Actions
@@ -54,11 +55,12 @@ interface BookingState {
   setPaymentMethod: (method: string) => void;
   setBookingId: (id: string) => void;
   setPaymentStatus: (status: 'pending' | 'success' | 'failed' | null) => void;
+  setBookingQrcode: (booking_qrcode: string) => void;
   reset: () => void;
 }
 
 const initialState = {
-  routeGroupid:"",
+  routeGroupid: "",
   routeId: '',
   travelDate: '',
   originProvinceId: '',
@@ -73,6 +75,7 @@ const initialState = {
   discount: 0,
   paymentMethod: '',
   bookingId: '',
+  booking_qrcode: '',
   paymentStatus: null as 'pending' | 'success' | 'failed' | null,
 };
 
@@ -94,5 +97,6 @@ export const useBookingStore = create<BookingState>((set) => ({
   setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
   setBookingId: (bookingId) => set({ bookingId }),
   setPaymentStatus: (paymentStatus) => set({ paymentStatus }),
+  setBookingQrcode: (booking_qrcode) => set({ booking_qrcode }),
   reset: () => set(initialState),
 }));

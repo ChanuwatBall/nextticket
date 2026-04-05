@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/http/supabase";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,10 +18,25 @@ const Login = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "เข้าสู่ระบบสำเร็จ!", description: "ยินดีต้อนรับกลับ" });
-    navigate("/profile");
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      })
+      if (error) {
+        throw error
+      }
+      localStorage.setItem("user", JSON.stringify(data))
+      toast({ title: "เข้าสู่ระบบสำเร็จ!", description: "ยินดีต้อนรับกลับ" });
+      navigate("/profile");
+    } catch (error) {
+      console.log("error ", error)
+      toast({ title: "เข้าสู่ระบบไม่สำเร็จ!", description: "กรุณาตรวจสอบข้อมูล" });
+    }
+
   };
 
   return (

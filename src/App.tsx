@@ -32,7 +32,7 @@ const queryClient = new QueryClient();
 const App = () => {
   useEffect(() => {
     // Only initialize LIFF if we are on the production URL specified in VITE_URL
-    if (!window.location.href.startsWith("https://")) {
+    if (!window.location.href.startsWith("https://") && window.location.href.startsWith("https://lovable.dev/")) {
       console.log("Not on production URL, skipping LIFF init");
       return;
     }
@@ -53,6 +53,8 @@ const App = () => {
           console.log("Loaded user profile from localStorage:", JSON.parse(storedProfile));
           const p = JSON.parse(storedProfile)
           const ltoken = await liff.getAccessToken()
+          const reslogin = await loginWithLine({ lineAccessToken: ltoken })
+          console.log("reslogin ", reslogin)
           // const res = await loginWithLine({ lineAccessToken: ltoken })
           // console.log("res line signin : ", res)
           // const res = await supabase.auth.signInWithIdToken({

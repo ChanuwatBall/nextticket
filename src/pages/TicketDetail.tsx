@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { QrCode, MapPin, Clock, Bus, User, CreditCard, ArrowLeft, Download, Mail, Phone, IdCard } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/http/supabase";
 
 const mockTicketDetails: Record<string, {
   id: string;
@@ -122,7 +124,20 @@ const passengerTypeLabels: Record<string, string> = {
 
 const TicketDetail = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
-  const ticket = ticketId ? mockTicketDetails[ticketId] : null;
+  const [ticket, setTicket] = useState(null)
+  // ticketId ? mockTicketDetails[ticketId] : null;
+  useEffect(() => {
+    const fetchTicket = async () => {
+      const { data, error } = await supabase.from("bookings").select("*").eq("id", ticketId);
+      if (error) {
+        console.error("Error fetching ticket:", error);
+        return;
+      }
+      console.log("booking id ", data)
+      setTicket(data[0]);
+    };
+    fetchTicket();
+  }, [ticketId]);
 
   if (!ticket) {
     return (
@@ -200,7 +215,9 @@ const TicketDetail = () => {
               <span className="text-muted-foreground">ทะเบียนรถ</span>
               <span className="text-right font-medium">{ticket.busPlate}</span>
               <span className="text-muted-foreground">ที่นั่ง</span>
-              <span className="text-right font-medium">{ticket.seats.join(", ")}</span>
+              <span className="text-right font-medium">
+                {/* {ticket.seats.join(", ")} */}
+              </span>
             </div>
           </CardContent>
         </Card>

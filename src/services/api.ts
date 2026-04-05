@@ -25,7 +25,10 @@ export const login = async (body: any) => {
 }
 
 export const loginWithLine = async (body: { lineAccessToken: string }) => {
-  return await api.post("/api/auth/line", body)
+
+  return await api.post("/api/auth/line", {
+    "lineAccessToken": body.lineAccessToken
+  })
     .then((res) => {
       console.log("loginWithLine res ", res)
       return res.data

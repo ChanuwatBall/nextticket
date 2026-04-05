@@ -37,7 +37,7 @@ const ETicketPage = () => {
         {store?.paymentStatus === "success" && <Card>
           <CardContent className="p-6 flex flex-col items-center">
             <div className="bg-card border-2 border-border rounded-xl p-4 mb-3">
-              <QrCode className="h-32 w-32 text-foreground" />
+              <img src={store.booking_qrcode} alt="QR Code" />
             </div>
             <p className="text-sm text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
           </CardContent>
