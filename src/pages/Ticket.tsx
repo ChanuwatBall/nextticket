@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 // import { getRoutes, getProvinces, Province, Route, getBoardingPoints, BoardingPoint } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/http/supabase";
+import moment from "moment";
 
 const Ticket = () => {
   const navigate = useNavigate();
@@ -341,7 +342,7 @@ const Ticket = () => {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={date} onSelect={setDate} disabled={(d) => d < new Date()} />
+              <Calendar mode="single" selected={date} onSelect={setDate} disabled={(d) => d < moment().startOf("day").toDate()} />
             </PopoverContent>
           </Popover>
         </div>

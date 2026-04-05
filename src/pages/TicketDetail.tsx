@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { QrCode, MapPin, Clock, Bus, User, CreditCard, ArrowLeft, Download, Mail, Phone, IdCard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
+import { bookingDetail } from "@/services/api";
+import QRCode from "qrcode";
+import moment from "moment";
 
 const mockTicketDetails: Record<string, {
   id: string;
@@ -124,17 +127,22 @@ const passengerTypeLabels: Record<string, string> = {
 
 const TicketDetail = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
+  const navigate = useNavigate()
   const [ticket, setTicket] = useState(null)
+  const [qr, setQr] = useState("")
   // ticketId ? mockTicketDetails[ticketId] : null;
   useEffect(() => {
     const fetchTicket = async () => {
-      const { data, error } = await supabase.from("bookings").select("*").eq("id", ticketId);
-      if (error) {
-        console.error("Error fetching ticket:", error);
-        return;
-      }
-      console.log("booking id ", data)
-      setTicket(data[0]);
+      const userstr = localStorage.getItem("user")
+      const user = JSON.parse(userstr)
+      const detail = await bookingDetail({ id: ticketId, token: user.token })
+      const qrBookingPayload = JSON.stringify({
+        booking_id: detail.bookingId
+      });
+      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+      setQr(qrBookingCode)
+      console.log("booking id detail", detail)
+      setTicket(detail);
     };
     fetchTicket();
   }, [ticketId]);
@@ -153,7 +161,7 @@ const TicketDetail = () => {
   const status = statusConfig[ticket.status];
 
   return (
-    <BookingLayout showSteps={false} title="รายละเอียดตั๋ว">
+    <BookingLayout showSteps={false} title="รายละเอียดตั๋ว" navto={() => navigate(-1)} >
       <div className="px-4 space-y-4 pb-6">
         {/* Route Header */}
         <Card className="overflow-hidden">
@@ -172,8 +180,9 @@ const TicketDetail = () => {
           {/* QR for upcoming */}
           {ticket.status === "upcoming" && (
             <div className="flex flex-col items-center py-5 bg-card">
-              <div className="border-2 border-border rounded-xl p-3 mb-2">
-                <QrCode className="h-28 w-28 text-foreground" />
+              <div className="border-2 border-border rounded-xl p-1 mb-1">
+                {/* <QrCode className="h-28 w-28 text-foreground" /> */}
+                <img src={qr} alt="qr code" className="h-40 w-40 text-foreground" />
               </div>
               <p className="text-xs text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
             </div>
@@ -267,7 +276,7 @@ const TicketDetail = () => {
             </h3>
             <div className="grid grid-cols-2 gap-y-2 text-sm">
               <span className="text-muted-foreground">วันที่จอง</span>
-              <span className="text-right font-medium">{ticket.bookingDate}</span>
+              <span className="text-right font-medium">{ticket.bookingDate ? moment(ticket.bookingDate).format("DD MMM YYYY HH:mm") : "-"}</span>
               <span className="text-muted-foreground">ช่องทางชำระ</span>
               <span className="text-right font-medium">{ticket.paymentMethod}</span>
               <span className="text-muted-foreground">ราคา/ที่นั่ง</span>
@@ -316,4 +325,4 @@ const TicketDetail = () => {
   );
 };
 
-export default TicketDetail;
+export default TicketDetail; 

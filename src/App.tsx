@@ -32,7 +32,7 @@ const queryClient = new QueryClient();
 const App = () => {
   useEffect(() => {
     // Only initialize LIFF if we are on the production URL specified in VITE_URL
-    if (!window.location.href.startsWith("https://") || window.location.href.startsWith("https://lovable.dev/")) {
+    if (!window.location.href.startsWith("https://") || window.location.href.startsWith("https://lovable.dev")) {
       console.log("Not on production URL, skipping LIFF init");
       return;
     }

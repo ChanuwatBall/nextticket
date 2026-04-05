@@ -8,7 +8,7 @@ import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Timer, AlertCircle, CheckCircle2, Store } from "lucide-react";
-import { createCharge, cancelCharge } from "@/services/api";
+import { createCharge, cancelCharge, createBooking, NewBooking, chargeQrPayment, paymentStatus, chargeWechatPayment } from "@/services/api";
 import QRCode from "qrcode";
 import liff from "@line/liff";
 
@@ -31,9 +31,10 @@ const PaymentQRPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const setPaymentStatus = useBookingStore((s) => s.setPaymentStatus);
-  const setBookingId = useBookingStore((s) => s.setBookingId);
+  // const setBookingId = useBookingStore((s) => s.setBookingId);
   const resetStore = useBookingStore((s) => s.reset);
   const store = useBookingStore();
+  const [bookingId, setBookingId] = useState<string | null>(null);
   // ดึง Base URL ของ API (เช่น http://localhost:8080)
   const baseUrl = import.meta.env.VITE_SOCKET_URL;
 
@@ -53,156 +54,125 @@ const PaymentQRPage = () => {
   // ใช้ Ref เพื่อเก็บ instance ของ WebSocket Client ไม่ให้หายไปเมื่อ Re-render
   const stompClientRef = useRef<Client | null>(null);
 
-  // --- ฟังก์ชันเชื่อมต่อ WebSocket ---
-  const connectWebSocket = useCallback((id: string) => { // Changed refId to lowercase string type for consistency
-    // 1. ตรวจสอบว่ามี connection เดิมอยู่หรือไม่ ถ้ามีให้ปิดก่อน
-    if (stompClientRef.current) {
-      stompClientRef.current.deactivate();
+  const handlePaymentSuccess = useCallback(async (id: string) => {
+    if (chargeStatus === "successful") return;
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const qrBookingPayload = JSON.stringify({
+      booking_reference: id
+    });
+    const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+    store.setBookingQrcode(qrBookingCode);
+    const passengers = bookingBody.passengers;
+    for (const passenger of passengers) {
+      const ticketBody = {
+        booking_id: bookingId,
+        ticket_number: (store.selectedTrip?.id + passenger.seatNumber + moment().format("YYYYMMDDHHmmss")).toUpperCase(),
+        passenger_name: passenger.fullName,
+        passenger_phone: passenger.phone,
+        passenger_id_card: passenger.thaiId,
+        seat_number: passenger.seatNumber,
+        passenger_type: passenger.passengerType,
+        price: store.selectedTrip?.price,
+        status: "active",
+        checked_in_at: null,
+      };
+      const qrTicketPayload = JSON.stringify(ticketBody);
+      const qrCodeTicket = await QRCode.toDataURL(qrTicketPayload);
+      const {
+        error: ticketError,
+        data: ticketData
+      } = await supabase.from("tickets")
+        .insert({
+          ...ticketBody,
+          qr_code: qrCodeTicket,
+          booking_id: bookingId
+        })
+        .select();
+
+      if (ticketError) {
+        console.error("Supabase ticket error:", ticketError);
+        continue;
+      }
+      console.log("ticketData ", ticketData)
+
+      if (ticketData && ticketData.length > 0) {
+        const seatPayload = {
+          trip_id: store.selectedTrip?.id,
+          seat_number: passenger.seatNumber,
+          seat_type: passenger.seatType,
+          ticket_id: ticketData[0].id,
+          booking_id: bookingId,
+          price: store?.selectedTrip?.price,
+        };
+        const { data: seateData, error: seatError } = await supabase.from("seats").insert(seatPayload);
+        if (seatError) console.error("Supabase seat error:", seatError);
+        console.log("seateData ", seateData)
+      }
+      setQrLoading(false);
     }
 
-    const socketUrl = baseUrl.replace("https", "wss");
-    // 2. ตั้งค่า Client
-    const client = new Client({
-      brokerURL: `${socketUrl}/ws-payment`,
+    setChargeStatus("successful");
+    setPaymentStatus("success");
+    // setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
+    setTimeout(() => navigate("/e-ticket"), 2000);
+  }, [chargeStatus, store, bookingBody, setPaymentStatus, navigate]);
 
-      debug: (msg) => console.log("STOMP:", msg),
-      reconnectDelay: 5000, // ลองต่อใหม่ทุก 5 วินาทีถ้าหลุด
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-      onConnect: () => {
-        console.log("Connected to WebSocket for Order:", id);
+  const handlePaymentFailed = useCallback(async (id: string) => {
+    if (chargeStatus === "failed") return;
 
-        // Subscribe ท่อที่ตรงกับ ID (ต้องตรงกับ Java: /topic/order/{id})
-        client.subscribe(`/topic/order/${id}`, async (message) => {
-          const payload = JSON.parse(message.body);
-          console.log("Payment Notification:", payload);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const { error: updateError, data: updateData } = await supabase.from("bookings")
+      .update({
+        status: "cancelled",
+        payment_status: "failed",
+      })
+      .eq("user_id", user.user.id)
+      .eq("booking_reference", id)
+      .select();
 
-          const status = payload.status.toLowerCase();
-          const user = JSON.parse(localStorage.getItem("user") || "{}");
-          // อัปเดตสถานะเพื่อเปลี่ยน UI
-          if (status === "success") {
-            const qrBookingPayload = JSON.stringify({
-              booking_reference: id
-            });
-            const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
-            store.setBookingQrcode(qrBookingCode);
-            const { error: updateError, data: updateData } = await supabase.from("bookings")
-              .update({
-                status: "completed",
-                payment_status: "paid",
-                qr_code: qrBookingCode
-              })
-              .eq("booking_reference", id)
-              .eq("user_id", user.user.id)
-              .select();
+    if (updateError) console.error("Supabase update error (failed):", updateError);
 
-            if (updateError) console.error("Supabase update error (success):", updateError);
-            console.log("Update success check:", { id, status, updateData });
+    setChargeStatus("failed");
+    setPaymentStatus("failed");
+  }, [chargeStatus, setPaymentStatus]);
 
-            if (updateData && updateData.length > 0) {
-              console.log("booking completed successfully", updateData);
-              const passengers = bookingBody.passengers
-              console.log("passengers ", passengers)
-              for (const passenger of passengers) {
+  // --- ฟังก์ชันเชื่อมต่อ WebSocket ---
+  // const connectWebSocket = useCallback((id: string) => {
+  //   if (stompClientRef.current) {
+  //     stompClientRef.current.deactivate();
+  //   }
 
-                const ticketBody = {
-                  booking_id: updateData[0].id,
-                  ticket_number: (store.selectedTrip?.id + passenger.seatNumber + moment().format("YYYYMMDDHHmmss")).toUpperCase(),
-                  passenger_name: passenger.fullName,
-                  passenger_phone: passenger.phone,
-                  passenger_id_card: passenger.thaiId,
-                  seat_number: passenger.seatNumber,
-                  passenger_type: passenger.passengerType,
-                  price: store.selectedTrip?.price,
-                  status: "active",
-                  checked_in_at: null,
-                }
-                console.log("ticketBody ", ticketBody)
-                const qrTicketPayload = JSON.stringify(ticketBody);
-                const qrCodeTicket = await QRCode.toDataURL(qrTicketPayload);
-                const {
-                  error: updateError,
-                  data: ticketData
-                } = await supabase.from("tickets")
-                  .insert({
-                    ...ticketBody,
-                    qr_code: qrCodeTicket
-                  })
-                  .select();
-                if (updateError) {
-                  console.error("Supabase update error (success):", updateError);
-                  continue;
-                }
-                if (ticketData && ticketData.length > 0) {
-                  console.log("ticketData ", ticketData)
-                  const seatPayload = {
-                    trip_id: store.selectedTrip?.id,
-                    seat_number: passenger.seatNumber,
-                    seat_type: passenger.seatType,
-                    ticket_id: ticketData[0].id,
-                    booking_id: updateData[0].id,
-                  }
-                  const { error: seatError, data: seatData } = await supabase.from("seats_booking")
-                    .insert(seatPayload)
-                  if (seatError) {
-                    console.error("Supabase update error (success):", seatError);
-                    continue;
-                  }
-                  console.log("seatData ", seatData)
-                }
-              }
-              setQrLoading(false);
+  //   const socketUrl = baseUrl.replace("https", "wss");
+  //   const client = new Client({
+  //     brokerURL: `${socketUrl}/ws-payment`,
+  //     debug: (msg) => console.log("STOMP:", msg),
+  //     reconnectDelay: 5000,
+  //     heartbeatIncoming: 4000,
+  //     heartbeatOutgoing: 4000,
+  //     onConnect: () => {
+  //       console.log("Connected to WebSocket for Order:", id);
 
-            } else {
-              console.warn("No booking found to update for success with reference:", id);
-            }
+  //       client.subscribe(`/topic/order/${id}`, async (message) => {
+  //         const payload = JSON.parse(message.body);
+  //         console.log("WebSocket Notification:", payload);
 
-            setChargeStatus("successful");
-            setPaymentStatus("success");
-            setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
+  //         const status = payload.status.toLowerCase();
+  //         if (status === "success" || status === "successful") {
+  //           handlePaymentSuccess(id);
+  //         } else if (status === "failed") {
+  //           handlePaymentFailed(id);
+  //         }
+  //       });
+  //     },
+  //     onStompError: (frame) => {
+  //       console.error("STOMP Error:", frame);
+  //     }
+  //   });
 
-            // หน่วงเวลาให้ User เห็น CheckCircle ก่อนเปลี่ยนหน้า
-            setTimeout(() => navigate("/e-ticket"), 2000);
-          } else if (status === "failed") {
-            const { error: updateError, data: updateData } = await supabase.from("bookings")
-              .update({
-                status: "cancelled",
-                payment_status: "failed", // Changed to 'failed' to match the situation better than 'refunded' usually
-              })
-              .eq("user_id", user.user.id)
-              .eq("booking_reference", id)
-              .select();
-
-            if (updateError) console.error("Supabase update error (failed):", updateError);
-            console.log("Update failure check:", { id, status, updateData });
-
-            if (updateData && updateData.length > 0) {
-              console.log("booking cancelled successfully", updateData);
-            } else {
-              console.warn("No booking found to update for failure with reference:", id);
-            }
-
-            setChargeStatus("failed");
-            setPaymentStatus("failed");
-          }
-
-          // if (chargeStatus !== "successful" && chargeStatus !== "failed" || timeLeft == 0) {
-          //   const { data, error } = await supabase.from("bookings")
-          //     .update({ status: "cancelled" })
-          //     .eq("booking_reference", refId);
-          //   setChargeStatus("timeup");
-          //   store.setPaymentStatus("failed");
-          // }
-        });
-      },
-      onStompError: (frame) => {
-        console.error("STOMP Error:", frame);
-      }
-    });
-
-    client.activate();
-    stompClientRef.current = client;
-  }, [baseUrl, navigate, setPaymentStatus, setBookingId]); // Stable dependencies
+  //   client.activate();
+  //   stompClientRef.current = client;
+  // }, [baseUrl, handlePaymentSuccess, handlePaymentFailed]);
 
   // --- Countdown Timer ---
   useEffect(() => {
@@ -211,6 +181,31 @@ const PaymentQRPage = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // --- Polling for Payment Status ---
+  useEffect(() => {
+    if (!chargeId || chargeStatus !== "pending") return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await paymentStatus(chargeId);
+        console.log("Polling Payment Status:", response);
+        const status = response.status.toLowerCase();
+
+        if (status === "success" || status === "successful") {
+          handlePaymentSuccess(chargeId);
+          clearInterval(pollInterval);
+        } else if (status === "failed") {
+          handlePaymentFailed(chargeId);
+          clearInterval(pollInterval);
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [chargeId, chargeStatus, handlePaymentSuccess, handlePaymentFailed]);
 
   const hasInitialized = useRef(false);
 
@@ -223,38 +218,61 @@ const PaymentQRPage = () => {
       setQrLoading(true);
       setQrError(null);
       try {
-        const response: any = await createCharge(total, sourceType, bookingDetail);
-        const id = response.data.sourceId;
-        const orderId = response.data.sourceId || id; // ใช้ order_id จาก metadata
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        setChargeId(response.data?.chargeId);
-        setQrUrl(response.data.qrCodeUrl);
-        const bookingbody = {
-          booking_reference: id,
-          user_id: user.user.id,
-          trip_id: bookingBody?.tripId,
-          phone: bookingBody?.passengers[0].phone,
-          email: "",
-          total_amount: total,
-          discount_amount: 0,
-          final_amount: total,
-          promotion_id: null,
-          pickup_stop: bookingBody?.boardingPointId,
-          dropoff_stop: bookingBody?.dropOffPointId,
-          status: "pending",
-          payment_status: "pending",
-          payment_method: sourceType,
-          booked_at: new Date().toISOString(),
+        var payqr: {
+          "chargeId": string
+          "qrCodeUrl": string
+          "status": string
+          "expiresAt": string
+        } = null
+        if (sourceType === "promptpay") {
+          payqr = await chargeQrPayment(total)
+        } else if (sourceType === "wechat_pay_mpm") {
+          payqr = await chargeWechatPayment(total)
         }
-        console.log("bookingbody ", bookingbody)
-        const { data, error } = await supabase.from("bookings").insert(bookingbody)
+        console.log("payqr ", payqr)
+        setQrUrl(payqr.qrCodeUrl);
 
-        if (error) {
-          throw error
+        // const response: any = await createCharge(total, sourceType, bookingDetail);
+        const id = payqr.chargeId;
+        const orderId = payqr.chargeId || id; // ใช้ order_id จาก metadata
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        setChargeId(payqr.chargeId);
+        setQrUrl(payqr.qrCodeUrl);
+
+        const bookingPayload: NewBooking = {
+          "tripId": bookingBody?.tripId,
+          "travelDate": bookingBody?.travelDate,
+          "originProvinceId": bookingBody?.originProvinceId,
+          "destinationProvinceId": bookingBody?.destinationProvinceId,
+          "boardingPointId": bookingBody?.boardingPointId,
+          "dropOffPointId": bookingBody?.dropOffPointId,
+          "passengers": store.passengers.map(e => {
+            return {
+              ...e,
+              price: store?.selectedTrip?.price,
+              trip_id: store?.selectedTrip?.id
+            }
+          }),
+          "promoCode": store.promoCode
         }
-        console.log("inserted booking data ", data)
+        const bookingres = await createBooking(bookingPayload)
+        console.log("bookingres ", bookingres)
+        setBookingId(bookingres.bookingId)
+        // console.log("bookingbody ", bookingbody)
+        const qrBookingPayload = JSON.stringify({
+          booking_id: bookingres.bookingId
+        });
+        const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+        const { data, error } = await supabase.from("bookings").update({
+          "qr_code": qrBookingCode
+        }).eq("booking_id", bookingres.bookingId)
+
+        // if (error) {
+        //   throw error
+        // }
+        // console.log("inserted booking data ", data)
         // เปลี่ยนจากการทำ Interval มาใช้ WebSocket แทน
-        connectWebSocket(orderId);
+        // connectWebSocket(orderId);
       } catch (err: any) {
         setQrError(err.message);
       } finally {
@@ -270,7 +288,7 @@ const PaymentQRPage = () => {
         stompClientRef.current.deactivate();
       }
     };
-  }, [total, sourceType, connectWebSocket]);
+  }, [total, sourceType]);
 
   const handleDownloadQR = useCallback(() => {
     if (!qrUrl) return;

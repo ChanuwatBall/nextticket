@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import PageTransition from "@/components/PageTransition";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
@@ -7,6 +7,7 @@ import { generateSeats, getBusLayout, isSpecialCell, type Seat, type SeatStatus,
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CircleDot } from "lucide-react";
+import { supabase } from "@/http/supabase";
 
 const statusColors: Record<SeatStatus, string> = {
   available: "bg-card border-2 border-primary/30 text-foreground hover:bg-primary/10 cursor-pointer",
@@ -33,6 +34,7 @@ const SeatSelection = () => {
   const initialSeats = useMemo(() => generateSeats(layout), [layout]);
   const [seats, setSeats] = useState<Seat[]>(initialSeats);
 
+
   const selectedSeats = useMemo(() => seats.filter((s) => s.status === "selected"), [seats]);
 
   const toggleSeat = useCallback((seatId: string) => {
@@ -46,6 +48,49 @@ const SeatSelection = () => {
       })
     );
   }, [selectedSeats.length, store.passengerCount]);
+
+  useEffect(() => {
+    const fetchSeats = async () => {
+      if (!store.selectedTrip?.id) return;
+
+      const { data: seatData, error: seatError } = await supabase
+        .from("seats")
+        .select("*")
+        .eq("trip_id", store.selectedTrip.id);
+
+      if (seatError) {
+        console.error("Error fetching seats:", seatError);
+        return;
+      }
+
+      if (seatData) {
+        console.log("DB Seat Data for Trip:", store.selectedTrip?.id, seatData);
+        setSeats((prev) => {
+          const updated = prev.map((s) => {
+            const dbSeat = seatData.find(
+              (ds) => ds.seat_number.trim().toUpperCase() === s.number.trim().toUpperCase()
+            );
+            
+            if (dbSeat) {
+              return {
+                ...s,
+                id: dbSeat.id,
+                status: dbSeat.is_available ? "available" : ("booked" as SeatStatus),
+                price: dbSeat.price,
+              };
+            }
+            // If not found in DB, just keep original mapped status (likely 'available')
+            return s; 
+          });
+          console.log("Updated UI Seats state:", updated);
+          return updated;
+        });
+      } else {
+         console.warn("No seatData returned from Supabase for trip:", store.selectedTrip?.id);
+      }
+    };
+    fetchSeats();
+  }, [store.selectedTrip?.id]);
 
   const handleContinue = () => {
     store.setSelectedSeats(selectedSeats);

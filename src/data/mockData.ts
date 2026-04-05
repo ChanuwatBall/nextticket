@@ -78,16 +78,12 @@ export const generateSeats = (layout: BusLayout): Seat[] => {
   layout.rows.forEach((row, rowIdx) => {
     row.forEach((cell, colIdx) => {
       if (cell === null || isSpecialCell(cell)) return;
-      const randomStatus = Math.random();
-      let status: SeatStatus = 'available';
-      if (randomStatus < 0.25) status = 'booked';
-      else if (randomStatus < 0.3) status = 'unavailable';
       seats.push({
         id: `s-${cell}`,
         number: cell,
         row: rowIdx,
         col: colIdx,
-        status,
+        status: "available",
         floor: 1,
       });
     });

@@ -39,10 +39,29 @@ export const loginWithLine = async (body: { lineAccessToken: string }) => {
     })
 }
 
-export const createBooking = async (body: any) => {
+export type NewBooking = {
+  "tripId": string,
+  "travelDate": string,
+  "originProvinceId": string,
+  "destinationProvinceId": string,
+  "boardingPointId": string,
+  "dropOffPointId": string,
+  "passengers": {
+    "seatId": string,
+    "seatNumber": string,
+    "fullName": string,
+    "thaiId": string,
+    "phone": string,
+    "passengerType": string
+  }[],
+  "promoCode": string
+}
+export const createBooking = async (body: NewBooking) => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}")
+  console.log("user ", user)
   return await api.post("/api/bookings", body, {
     headers: {
-      "Authorization": `Bearer ${localStorage.getItem("token")}`
+      "Authorization": `Bearer ${user.token}`
     }
   })
     .then((res) => {
@@ -56,6 +75,81 @@ export const createBooking = async (body: any) => {
 }
 
 
+export const bookingList = () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}")
+  return api.get(`/api/bookings`, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("bookingList res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("bookingList err ", err)
+      return err.response.data
+    })
+}
+
+export const bookingDetail = async ({ id, token }: any) => {
+  return await api.get(`/api/bookings/${id}`, {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  })
+    .then((res) => {
+      console.log("bookingDetail res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("bookingDetail err ", err)
+      return err.response.data
+    })
+}
+export const chargeWechatPayment = async (amount: any) => {
+  return await api.post("/api/payment/wechat_pay_mpm", {
+    amount: amount
+  })
+    .then((res) => {
+      console.log("chargeWechatPayment res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("chargeWechatPayment err ", err)
+      return err.response.data
+    })
+}
+export const chargeQrPayment = async (amount: any) => {
+  return await api.post("/api/payment/qr", {
+    amount: amount
+  })
+    .then((res) => {
+      console.log("chargeQrPayment res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("chargeQrPayment err ", err)
+      return err.response.data
+    })
+}
+
+export const paymentStatus = async (chargeId: string) => {
+  // https://nex-api.rubyclaw.tech/api/payment/transaction/{id}
+  return await api.get(`/api/payment/transaction/${chargeId}`, {
+    headers: {
+      "Authorization": `Bearer ${localStorage.getItem("token")}`
+    }
+  })
+    .then((res) => {
+      console.log("paymentStatus res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("paymentStatus err ", err)
+      return err.response.data
+    })
+}
 // // ─────────────────────────────────────────────
 // // Axios Instance
 // // ─────────────────────────────────────────────

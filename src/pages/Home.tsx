@@ -268,7 +268,7 @@ const Home = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={date} onSelect={setDate} disabled={(d) => d < new Date()} />
+                      <Calendar mode="single" selected={date} onSelect={setDate} disabled={(d) => d < moment().startOf("day").toDate()} />
                     </PopoverContent>
                   </Popover>
                 </div>

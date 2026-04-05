@@ -7,6 +7,7 @@ import { QrCode, MapPin, Clock, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
 import moment from "moment";
+import { bookingList } from "@/services/api";
 
 const mockTickets = [
   {
@@ -45,55 +46,21 @@ const mockTickets = [
 ];
 
 type Ticket = {
-  "id": string,
-  "booking_reference": string,
-  "user_id": string,
-  "trip_id": string,
-  "phone": string,
-  "email": string,
-  "total_amount": number,
-  "discount_amount": number,
-  "final_amount": number,
-  "promotion_id": null,
-  "pickup_stop": string,
-  "dropoff_stop": string,
-  "status": string,
-  "payment_status": string,
-  "payment_method": string,
-  "booked_at": string,
-  "created_at": string,
-  "qr_code": string | null,
-  "seat_number": string,
-  "seats": { seat_number: string }[],
-  trips: {
-    "id": string,
-    "date": string,
-    "price": number,
-    "status": string,
-    "route_id": string,
-    "trip_type": string,
-    "bus_number": string,
-    "created_at": string,
-    "profile_id": string,
-    "bus_type_id": string,
-    "driver_name": string,
-    "total_seats": number,
-    "arrival_time": string,
-    "departure_time": string,
-    "available_seats": number,
-    "origin_province_id": string,
-    "destination_province_id": string
-  }
+  "id": "932a4e43-7b01-4ff2-abdc-4cf1e26f60a5",
+  "origin": "กรุงเทพฯ",
+  "destination": "ขอนแก่น",
+  "date": "2026-04-05",
+  "departureTime": "21:30",
+  "arrivalTime": "03:30",
+  "seats": [],
+  "status": "completed",
+  "total": 480
 }
 
 const statusConfig = {
-  // upcoming: { label: "กำลังจะถึง", variant: "default" as const },
-  // completed: { label: "เสร็จสิ้น", variant: "secondary" as const },
-  // cancelled: { label: "ยกเลิก", variant: "destructive" as const },
-  pending: { label: "รอชำระเงิน", variant: "default" as const },
-  confirmed: { label: "เสร็จสิ้น", variant: "success" as const },
+  upcoming: { label: "กำลังจะถึง", variant: "default" as const },
+  completed: { label: "เสร็จสิ้น", variant: "secondary" as const },
   cancelled: { label: "ยกเลิก", variant: "destructive" as const },
-  completed: { label: "เสร็จสิ้น", variant: "success" as const },
 };
 
 const MyTicketsPage = () => {
@@ -102,27 +69,11 @@ const MyTicketsPage = () => {
 
   const getTickets = async () => {
     try {
-      const userstr = localStorage.getItem("user")
-      const user = JSON.parse(userstr || "{}")
-      console.log("user ", user)
-      const { data, error } = await supabase.from("bookings")
-        .select("* , trips(*) ")
-        .eq("user_id", user?.user?.id)
-      if (error) {
-        throw error
-      }
-      console.log("data ", data)
-      for (const booking of data) {
-        const { data: seatData, error: seatError } = await supabase.from("seats_booking")
-          .select("seat_number")
-          .eq("booking_id", booking.id)
-        if (seatError) {
-          throw seatError
-        }
-        booking.seats = seatData
-      }
-      console.log("ticket data ", data)
-      setTickets(data)
+      const bookings = await bookingList()
+      console.log("bookings ", bookings)
+
+      setTickets(bookings)
+
     } catch (error) {
       console.log("error ", error)
     }
@@ -151,10 +102,10 @@ const MyTicketsPage = () => {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="text-xs text-muted-foreground">#BOOK-{(ticket.trip_id + moment().format("YYYYMMDD")).toUpperCase().replace("-", "")}</p>
+                            <p className="text-xs text-muted-foreground">#{(ticket.id).substring(0, 8).toUpperCase()}</p>
                             <div className="flex items-center gap-1.5 mt-1">
                               <MapPin className="h-3.5 w-3.5 text-primary" />
-                              <span className="font-bold">{ticket.trips?.origin_province_id} → {ticket.trips?.destination_province_id}</span>
+                              <span className="font-bold">{ticket.origin} → {ticket.destination}</span>
                             </div>
                           </div>
                           <Badge variant={statusConfig[ticket.status].variant}>
@@ -162,15 +113,15 @@ const MyTicketsPage = () => {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{ticket.trips?.date}</span>
+                          <span>{ticket.date}</span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {ticket.trips?.departure_time}
+                            {ticket.departureTime}
                           </span>
-                          <span>ที่นั่ง {ticket.seats.map((seat) => seat.seat_number).join(", ")}</span>
+                          <span>ที่นั่ง {ticket.seats.map((seat) => seat).join(", ")}</span>
                         </div>
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                          <span className="font-bold text-primary">฿{ticket?.final_amount}</span>
+                          <span className="font-bold text-primary">฿{ticket?.total}</span>
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </CardContent>
