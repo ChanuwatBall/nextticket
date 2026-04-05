@@ -63,6 +63,7 @@ const App = () => {
           //   nonce: "random-string-for-security",
           // })
           // console.log("res line signin : ", res)
+          localStorage.setItem("user", JSON.stringify(reslogin))
 
           console.log("p?.userId ", p?.userId)
           const user = await supabase.from("users").select("*")
@@ -85,6 +86,10 @@ const App = () => {
             console.log("User profile:", profile);
             localStorage.setItem("userProfile", JSON.stringify(profile));
             const ltoken = await liff.getAccessToken()
+
+            const reslogin = await loginWithLine({ lineAccessToken: ltoken })
+            console.log("reslogin ", reslogin)
+            localStorage.setItem("user", JSON.stringify(reslogin.data))
             // const res = await loginWithLine({ lineAccessToken: ltoken })
             // console.log("res line signin : ", res)
 

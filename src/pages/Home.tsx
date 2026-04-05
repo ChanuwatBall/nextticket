@@ -61,15 +61,15 @@ const Home = () => {
 
     const conf = async () => {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: "admin@nexexpress.co.th",
-          password: "nexadmin2026",
-        })
-        if (error) {
-          throw error
-        }
-        console.log("data ", data)
-        localStorage.setItem("user", JSON.stringify(data))
+        // const { data, error } = await supabase.auth.signInWithPassword({
+        //   email: "admin@nexexpress.co.th",
+        //   password: "nexadmin2026",
+        // })
+        // if (error) {
+        //   throw error
+        // }
+        // console.log("data ", data)
+        // localStorage.setItem("user", JSON.stringify(data))
       } catch (error) {
         console.log("error ", error)
       }

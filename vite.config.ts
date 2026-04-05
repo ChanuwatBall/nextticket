@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => ({
     global: 'window',
   },
   server: {
+    allowedHosts: true,
     host: "::",
     port: 8080,
     hmr: {
@@ -22,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  plugins: [react(), mode === "development" && componentTagger(), basicSsl()].filter(Boolean),
+  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
