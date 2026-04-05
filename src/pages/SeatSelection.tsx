@@ -70,7 +70,7 @@ const SeatSelection = () => {
             const dbSeat = seatData.find(
               (ds) => ds.seat_number.trim().toUpperCase() === s.number.trim().toUpperCase()
             );
-            
+
             if (dbSeat) {
               return {
                 ...s,
@@ -80,13 +80,13 @@ const SeatSelection = () => {
               };
             }
             // If not found in DB, just keep original mapped status (likely 'available')
-            return s; 
+            return s;
           });
           console.log("Updated UI Seats state:", updated);
           return updated;
         });
       } else {
-         console.warn("No seatData returned from Supabase for trip:", store.selectedTrip?.id);
+        console.warn("No seatData returned from Supabase for trip:", store.selectedTrip?.id);
       }
     };
     fetchSeats();
@@ -94,8 +94,36 @@ const SeatSelection = () => {
 
   const handleContinue = () => {
     store.setSelectedSeats(selectedSeats);
-    navigate("/passengers");
-  };
+    console.log("selectedSeats ", selectedSeats)
+    const lockSeat = async () => {
+      try {
+        for (const seat of selectedSeats) {
+          const seatPayload = {
+            trip_id: store.selectedTrip?.id,
+            seat_number: seat.number,
+            seat_type: seat.type,
+            ticket_id: null,
+            price: store?.selectedTrip?.price,
+            is_available: false,
+          };
+          console.log("selectedSeats ", seatPayload)
+          const { data: seateData, error: seatError } = await supabase.from("seats")
+            .insert(seatPayload)
+            .select();
+          if (seatError) {
+            console.error("Error locking seat:", seatError);
+          }
+          else {
+            console.log("Seat locked:", seateData);
+          }
+        }
+      } catch (error) {
+        console.error("Error locking seat:", error);
+      }
+      navigate("/passengers");
+    }
+    lockSeat();
+  }
 
   return (
     <PageTransition>

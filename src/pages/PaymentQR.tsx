@@ -57,7 +57,7 @@ const PaymentQRPage = () => {
   const handlePaymentSuccess = useCallback(async (id: string) => {
     if (chargeStatus === "successful") return;
 
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    // const user = JSON.parse(localStorage.getItem("user") || "{}");
     const qrBookingPayload = JSON.stringify({
       booking_reference: id
     });
@@ -102,10 +102,15 @@ const PaymentQRPage = () => {
           seat_number: passenger.seatNumber,
           seat_type: passenger.seatType,
           ticket_id: ticketData[0].id,
-          booking_id: bookingId,
+          is_available: false,
+          // booking_id: bookingId,
           price: store?.selectedTrip?.price,
         };
-        const { data: seateData, error: seatError } = await supabase.from("seats").insert(seatPayload);
+        const { data: seateData, error: seatError } = await supabase.from("seats")
+          .update(seatPayload)
+          .eq("trip_id", store.selectedTrip?.id)
+          .eq("seat_number", passenger.seatNumber)
+          .select()
         if (seatError) console.error("Supabase seat error:", seatError);
         console.log("seateData ", seateData)
       }
@@ -121,15 +126,31 @@ const PaymentQRPage = () => {
   const handlePaymentFailed = useCallback(async (id: string) => {
     if (chargeStatus === "failed") return;
 
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    // const user = JSON.parse(localStorage.getItem("user") || "{}");
     const { error: updateError, data: updateData } = await supabase.from("bookings")
       .update({
         status: "cancelled",
         payment_status: "failed",
       })
-      .eq("user_id", user.user.id)
+      // .eq("user_id", user.user.id)
       .eq("booking_reference", id)
       .select();
+    for (const passenger of store.passengers) {
+      const seatPayload = {
+        trip_id: store.selectedTrip?.id,
+        seat_number: passenger.seatNumber,
+        ticket_id: null,
+        price: store?.selectedTrip?.price,
+        is_available: true,
+      };
+      const { data: seateData, error: seatError } = await supabase.from("seats")
+        .update(seatPayload)
+        .eq("trip_id", store.selectedTrip?.id)
+        .eq("seat_number", passenger.seatNumber)
+        .select()
+      if (seatError) console.error("Supabase seat error:", seatError);
+      console.log("seateData ", seateData)
+    }
 
     if (updateError) console.error("Supabase update error (failed):", updateError);
 
@@ -207,6 +228,14 @@ const PaymentQRPage = () => {
     return () => clearInterval(pollInterval);
   }, [chargeId, chargeStatus, handlePaymentSuccess, handlePaymentFailed]);
 
+  // --- Handle Timeout ---
+  useEffect(() => {
+    if (timeLeft === 0 && chargeStatus === "pending" && chargeId) {
+      console.log("Payment timed out, running cleanup...");
+      handlePaymentFailed(chargeId);
+    }
+  }, [timeLeft, chargeStatus, chargeId, handlePaymentFailed]);
+
   const hasInitialized = useRef(false);
 
   // --- Create Charge & Start WebSocket ---
@@ -231,13 +260,7 @@ const PaymentQRPage = () => {
         }
         console.log("payqr ", payqr)
         setQrUrl(payqr.qrCodeUrl);
-
-        // const response: any = await createCharge(total, sourceType, bookingDetail);
-        const id = payqr.chargeId;
-        const orderId = payqr.chargeId || id; // ใช้ order_id จาก metadata
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
         setChargeId(payqr.chargeId);
-        setQrUrl(payqr.qrCodeUrl);
 
         const bookingPayload: NewBooking = {
           "tripId": bookingBody?.tripId,
@@ -255,6 +278,7 @@ const PaymentQRPage = () => {
           }),
           "promoCode": store.promoCode
         }
+        console.log("bookingPayload ", bookingPayload)
         const bookingres = await createBooking(bookingPayload)
         console.log("bookingres ", bookingres)
         setBookingId(bookingres.bookingId)
@@ -266,15 +290,18 @@ const PaymentQRPage = () => {
         const { data, error } = await supabase.from("bookings").update({
           "qr_code": qrBookingCode
         }).eq("booking_id", bookingres.bookingId)
+        console.log("data ", data)
+        if (error) {
+          throw error
+        } else {
+          console.log("update qr code success ", qrBookingCode)
+        }
 
-        // if (error) {
-        //   throw error
-        // }
         // console.log("inserted booking data ", data)
         // เปลี่ยนจากการทำ Interval มาใช้ WebSocket แทน
         // connectWebSocket(orderId);
       } catch (err: any) {
-        setQrError(err.message);
+        // setQrError(err.message);
       } finally {
         setQrLoading(false);
       }
