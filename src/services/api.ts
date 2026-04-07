@@ -205,6 +205,64 @@ export const getWalletPoint = async () => {
     })
 }
 
+export const cancelCharge = (chargeId: string) =>
+  api.post(`/api/payment/cancel/${chargeId}`)
+    .then((res) => {
+      console.log("cancelCharge res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("cancelCharge err ", err)
+      return err.response.data
+    })
+
+export const getPromotions = async () => {
+  return await api.get(`/api/promotions`)
+    .then((res) => {
+      console.log("getPromotions res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("getPromotions err ", err)
+      return err.response.data
+    })
+}
+
+export const getPromotionDetail = async (id: string) => {
+  return await api.get(`/api/promotions/${id}`)
+    .then((res) => {
+      console.log("getPromotionDetail res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("getPromotionDetail err ", err)
+      return err.response.data
+    })
+}
+
+// curl https://nex-api.rubyclaw.tech/api/promotions/validate \
+//   --request POST \
+//   --header 'Content-Type: application/json' \
+//   --data '{
+//   "promoCode": "",
+//   "tripId": ""
+// }'
+
+export const validatePromo = async (promoCode: string, tripId: string) => {
+  return await api.post(`/api/promotions/validate`, {
+    promoCode,
+    tripId
+  })
+    .then((res) => {
+      console.log("validatePromo res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("validatePromo err ", err)
+      return err.response.data
+    })
+}
+
 // // ─────────────────────────────────────────────
 // // Axios Instance
 // // ─────────────────────────────────────────────
@@ -614,8 +672,8 @@ export const createCharge = (total: number, sourceType: PaymentSourceType, booki
 //   http.get<ChargeStatusResponse>(`/payment/transaction/${chargeId}`);
 
 // /** POST /payment/cancel/:chargeId — ยกเลิกรายการชำระเงิน */
-export const cancelCharge = (chargeId: string) =>
-  http.post(`/api/payment/cancel/${chargeId}`);
+// export const cancelCharge = (chargeId: string) =>
+//   http.post(`/api/payment/cancel/${chargeId}`);
 
 // // ─────────────────────────────────────────────
 // // API — Auth

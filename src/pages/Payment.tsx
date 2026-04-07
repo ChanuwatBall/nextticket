@@ -67,8 +67,8 @@ const PaymentPage = () => {
       "travelDate": store.travelDate,
       "originProvinceId": store.originProvinceId?.id,
       "destinationProvinceId": store.destinationProvinceId?.id,
-      "boardingPointId": store.boardingPointId?.id,
-      "dropOffPointId": store.dropOffPointId?.id,
+      "boardingPointId": store.boardingPointId?.name,
+      "dropOffPointId": store.dropOffPointId?.name,
       "passengers": store.passengers.map((passenger) => {
         return {
           "seatId": passenger.seatId,

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
 import moment from "moment";
 import { bookingList } from "@/services/api";
+import { toast } from "sonner";
 
 const mockTickets = [
   {
@@ -70,6 +71,10 @@ const MyTicketsPage = () => {
   const getTickets = async () => {
     try {
       const bookings = await bookingList()
+      if (bookings.error) {
+        toast.error("ไม่สามารถดึงข้อมูลตั๋วได้ " + bookings.error)
+        return
+      }
       console.log("bookings ", bookings)
 
       setTickets(bookings)

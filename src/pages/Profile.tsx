@@ -32,8 +32,7 @@ const Profile = () => {
     const conf = () => {
       const user = localStorage.getItem("user")
       if (user) {
-        console.log("user ", JSON.parse(user) ?? "")
-        setUser(JSON.parse(user) ?? null)
+        setUser(user ? JSON.parse(user) : null)
       }
     }
     conf()

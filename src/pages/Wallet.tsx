@@ -37,12 +37,16 @@ const getTransactionLabel = (type: string) => {
 const Wallet = () => {
   const [balance, setBalance] = useState(0);
   const [availablePoints, setAvailablePoints] = useState(0);
-  const [transactions, setTransaction] = useState(mockTransactions)
+  const [transactions, setTransaction] = useState([])
 
   const getwalletspoint = async () => {
     const res = await getWalletPoint()
     console.log("res wallet point ", res)
-    if (res) {
+    if (res?.error) {
+      setBalance(0)
+      setAvailablePoints(0)
+      setTransaction([])
+    } else {
       setBalance(res.balance)
       setAvailablePoints(res.point)
       setTransaction(res.transactions && res.transactions.length > 0 ? res.transactions : mockTransactions)
@@ -73,7 +77,7 @@ const Wallet = () => {
               </div>
               <div>
                 <p className="text-sm opacity-80">ยอดเงินคงเหลือ</p>
-                <p className="text-3xl font-bold">฿{balance.toLocaleString()}</p>
+                <p className="text-3xl font-bold">฿{balance ? balance.toLocaleString() : " - "}</p>
               </div>
             </div>
             <Separator className="bg-primary-foreground/20 my-3" />
@@ -81,7 +85,7 @@ const Wallet = () => {
               <span className="opacity-80">แต้มสะสมที่ใช้ได้</span>
               <Link to="/points" className="flex items-center gap-1 font-semibold hover:underline">
                 <Star className="h-4 w-4 fill-current" />
-                {availablePoints} แต้ม
+                {availablePoints ? availablePoints : "-"} แต้ม
               </Link>
             </div>
           </CardContent>

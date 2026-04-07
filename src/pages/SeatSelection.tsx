@@ -75,7 +75,7 @@ const SeatSelection = () => {
               return {
                 ...s,
                 id: dbSeat.id,
-                status: dbSeat.is_available ? "available" : ("booked" as SeatStatus),
+                status: "booked" as SeatStatus,
                 price: dbSeat.price,
               };
             }
@@ -104,7 +104,7 @@ const SeatSelection = () => {
             seat_type: seat.type,
             ticket_id: null,
             price: store?.selectedTrip?.price,
-            is_available: false,
+            is_available: true,
           };
           console.log("selectedSeats ", seatPayload)
           const { data: seateData, error: seatError } = await supabase.from("seats")

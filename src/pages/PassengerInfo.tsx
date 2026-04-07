@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { mockPromotions } from "@/data/mockData";
 import { Check, CheckIcon, Tag } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { validatePromo } from "@/services/api";
+import { toast } from "sonner";
 
 const passengerTypes = [
   { value: "male", label: "ชาย" },
@@ -49,22 +51,43 @@ const PassengerInfoPage = () => {
 
   const validateThaiId = (id: string) => /^\d{13}$/.test(id);
 
-  const applyPromo = () => {
-    const promo = mockPromotions.find((p) => p.promoCode === promoInput.toUpperCase());
-    if (!promo) {
-      setPromoError("ไม่พบรหัสโปรโมชั่น");
+  const applyPromo = async () => {
+    const promo: any = await validatePromo(promoInput.toUpperCase(), store.selectedTrip?.id ?? "");
+    console.log("promo ", promo)
+    if (!promo.valid) {
+      setPromoError(promo.message);
       setPromoApplied(false);
-      return;
+      toast.error(promo.message, { position: "top-center" })
+    } else {
+      setPromoError("");
+      setPromoApplied(true);
+      store.setPromoCode(promoInput);
+      store.setDiscount(promo.discountAmount);
+      toast.success(promo.message, { position: "top-center" })
+
+
+      const tripPrice = store.selectedTrip?.price ?? 0;
+      const total = tripPrice * store.selectedSeats.length;
+      const discount = promo.discountPercent > 0
+        ? Math.round(total * promo.discountPercent / 100)
+        : promo.discountAmount;
+      store.setDiscount(discount);
     }
-    setPromoError("");
-    setPromoApplied(true);
-    store.setPromoCode(promo.promoCode);
-    const tripPrice = store.selectedTrip?.price ?? 0;
-    const total = tripPrice * store.selectedSeats.length;
-    const discount = promo.discountPercent > 0
-      ? Math.round(total * promo.discountPercent / 100)
-      : promo.discountAmount;
-    store.setDiscount(discount);
+    // const promo = mockPromotions.find((p) => p.promoCode === promoInput.toUpperCase());
+    // if (!promo) {
+    //   setPromoError("ไม่พบรหัสโปรโมชั่น");
+    //   setPromoApplied(false);
+    //   return;
+    // }
+    // setPromoError("");
+    // setPromoApplied(true);
+    // store.setPromoCode(promo.promoCode);
+    // const tripPrice = store.selectedTrip?.price ?? 0;
+    // const total = tripPrice * store.selectedSeats.length;
+    // const discount = promo.discountPercent > 0
+    //   ? Math.round(total * promo.discountPercent / 100)
+    //   : promo.discountAmount;
+    // store.setDiscount(discount);
   };
 
   const allValid = passengers.every(

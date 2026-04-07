@@ -341,7 +341,7 @@ const Home = () => {
                     >
                       <div className={`absolute inset-0 flex items-center justify-center text-left p-3`}
                         style={{ flexDirection: "column" }}>
-                        <span className="text-white text-xl font-bold">{promo.title}</span>
+                        <span className="text-black text-xl font-bold">{promo.title}</span>
                         <small>{promo?.description}</small>
                       </div>
                     </div>

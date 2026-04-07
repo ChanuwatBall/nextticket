@@ -25,6 +25,7 @@ import {
 import { supabase } from "@/http/supabase";
 import moment from "moment";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 
 const TIMER_SECONDS = 10 * 60; // 15 minutes
 
@@ -104,7 +105,7 @@ const PaymentQRPage = () => {
           seat_number: passenger.seatNumber,
           seat_type: passenger.seatType,
           ticket_id: ticketData[0].id,
-          is_available: false,
+          is_available: true,
           // booking_id: bookingId,
           price: store?.selectedTrip?.price,
         };
@@ -284,26 +285,40 @@ const PaymentQRPage = () => {
         const bookingres = await createBooking(bookingPayload)
         console.log("bookingres ", bookingres)
         if (bookingres.error) {
-          toast({ title: "ไม่สามารถจองตั๋วได้", description: bookingres.error, variant: "destructive", duration: 5000 });
+          toast({
+            title: "ไม่สามารถจองตั๋วได้",
+            description: bookingres.error,
+            variant: "destructive",
+            duration: Infinity,
+            action: (
+              <ToastAction altText="ตกลง">
+                ตกลง
+              </ToastAction>
+            ),
+          });
           await cancelCharge(payqr.chargeId)
+          setTimeout(() => {
+            navigate(-1)
+          }, 1000)
           return
-        }
-        setBookingId(bookingres.bookingId)
-        // console.log("bookingbody ", bookingbody)
-        const qrBookingPayload = JSON.stringify({
-          booking_id: bookingres.bookingId
-        });
-        const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
-        const { data, error } = await supabase.from("bookings").update({
-          "qr_code": qrBookingCode
-        }).eq("booking_id", bookingres.bookingId)
-        console.log("data ", data)
-        if (error) {
-          throw error
         } else {
-          console.log("update qr code success ", qrBookingCode)
-        }
+          setBookingId(bookingres.bookingId)
+          // console.log("bookingbody ", bookingbody)
+          const qrBookingPayload = JSON.stringify({
+            booking_id: bookingres.bookingId
+          });
+          const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+          const { data, error } = await supabase.from("bookings").update({
+            "qr_code": qrBookingCode
+          }).eq("booking_id", bookingres.bookingId)
+          console.log("data ", data)
+          if (error) {
+            throw error
+          } else {
+            console.log("update qr code success ", qrBookingCode)
+          }
 
+        }
         // console.log("inserted booking data ", data)
         // เปลี่ยนจากการทำ Interval มาใช้ WebSocket แทน
         // connectWebSocket(orderId);
@@ -313,8 +328,10 @@ const PaymentQRPage = () => {
         setQrLoading(false);
       }
     };
+    setTimeout(() => {
+      initPayment();
+    }, 2500)
 
-    initPayment();
 
     // Cleanup: เมื่อออกจากหน้า ให้ปิด WebSocket ทันที
     return () => {

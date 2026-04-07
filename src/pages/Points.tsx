@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useEffect, useState } from "react";
 import { getpointHistory, userPoints } from "@/services/api";
+import { toast } from "sonner";
 
 const mockPointsHistory = [
   { id: "1", description: "จอง กรุงเทพ → เชียงใหม่", date: "28 ก.พ. 2026", amount: 850, points: 8, type: "earn" as const },
@@ -22,6 +23,7 @@ const Points = () => {
     rewardValue: number;
   } | null>(null)
   const [progressPercent, setProgressPercent] = useState<number>(0)
+  const [pointHistory, setPointHistory] = useState<any[]>([])
   // const totalPoints = 156;
   // const nextRewardAt = 200;
   // const progressPercent = (totalPoints / nextRewardAt) * 100;
@@ -29,13 +31,26 @@ const Points = () => {
   const getpoints = async () => {
     const usrp = await userPoints()
     console.log("usrp ", usrp)
-    setPoints(usrp)
-    setProgressPercent((usrp.totalPoints / usrp.nextRewardAt) * 100)
+    if (usrp?.error) {
+      // toast.error("ไม่สามารถดึงข้อมูลแต้มได้ " + usrp.error) 
+      setPoints({
+        totalPoints: 0,
+        nextRewardAt: 0,
+        rewardValue: 0
+      })
+    } else {
+      setPoints(usrp)
+      setProgressPercent((usrp.totalPoints / usrp.nextRewardAt) * 100)
+    }
   }
 
   const getHistory = async () => {
     const phis = await getpointHistory()
-    console.log("phis ", phis)
+    if (phis.error) {
+      toast.error("ไม่สามารถดึงข้อมูลประวัติแต้มได้ " + phis.error)
+      return
+    }
+    setPointHistory(phis)
   }
   useEffect(() => {
     getpoints()
@@ -77,7 +92,7 @@ const Points = () => {
             </div>
             <Progress value={progressPercent} className="h-3" />
             <p className="text-xs text-muted-foreground text-center">
-              อีก <span className="font-semibold text-foreground">{points?.nextRewardAt - points?.totalPoints} แต้ม</span> จะได้รับส่วนลด 50 บาท
+              อีก <span className="font-semibold text-foreground">{points ? (points?.nextRewardAt - points?.totalPoints) : "-"} แต้ม</span> จะได้รับส่วนลด 50 บาท
             </p>
           </CardContent>
         </Card>
@@ -131,7 +146,7 @@ const Points = () => {
 
         {/* Points History */}
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-4">
             <CardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               ประวัติแต้มสะสม
@@ -139,7 +154,7 @@ const Points = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
-              {mockPointsHistory.map((item) => (
+              {pointHistory.map((item) => (
                 <div key={item.id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{item.description}</p>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { mockPromotions } from "@/data/mockData";
@@ -8,11 +8,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Tag, Clock, Copy, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/http/supabase";
+import { getPromotions } from "@/services/api";
 
 const PromotionsPage = () => {
-  
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const navigate = useNavigate();
+  useEffect(() => {
+    const conf = async () => {
+      const promotionsData = await getPromotions()
+      if (promotionsData) setPromotions(promotionsData);
+
+    }
+    conf()
+  }, [])
   return (
-    <BookingLayout showSteps={false} title="โปรโมชั่น">
+    <BookingLayout showSteps={false} title="โปรโมชั่น" navto={() => navigate(-1)}>
       <div className="px-4">
         <Tabs defaultValue="all">
           <TabsList className="w-full mb-4">
@@ -22,30 +33,30 @@ const PromotionsPage = () => {
 
           {["all", "member"].map((tab) => (
             <TabsContent key={tab} value={tab} className="space-y-3">
-              {mockPromotions
+              {promotions
                 .filter((p) => tab === "all" || p.memberOnly)
                 .map((promo) => (
                   <Link to={`/promotions/${promo.id}`} key={promo.id}>
-                  <Card
-                    className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all mb-2"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Tag className="h-4 w-4 text-primary" />
-                          <span className="font-bold">{promo.title}</span>
+                    <Card
+                      className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all mb-2"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-primary" />
+                            <span className="font-bold">{promo.title}</span>
+                          </div>
+                          {promo.memberOnly && <Badge variant="secondary">สมาชิก</Badge>}
                         </div>
-                        {promo.memberOnly && <Badge variant="secondary">สมาชิก</Badge>}
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">{promo.description}</p>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> หมดอายุ {promo.expiryDate}
-                        </span>
-                        <span>เหลือ {promo.remainingQuota} สิทธิ์</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        <p className="text-sm text-muted-foreground mb-2">{promo.description}</p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> หมดอายุ {promo.expiryDate}
+                          </span>
+                          <span>เหลือ {promo.remainingQuota} สิทธิ์</span>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </Link>
                 ))}
             </TabsContent>

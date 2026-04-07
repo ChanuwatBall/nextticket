@@ -29,6 +29,8 @@ const SearchResults = () => {
   const [busStops, setBusStops] = useState<any[]>([]);
   const [localBoardingPoint, setLocalBoardingPoint] = useState<any>(null);
   const [localDropOffPoint, setLocalDropOffPoint] = useState<any>(null);
+  const [destBoardingPoints, setDestBoardingPoints] = useState<any[]>([]);
+  const [originBoardingPoints, setOriginBoardingPoints] = useState<any[]>([]);
 
   useEffect(() => {
     const conf = async () => {
@@ -45,16 +47,17 @@ const SearchResults = () => {
           .eq("origin_id", store.originProvinceId.id)
           .eq("destination_id", store.destinationProvinceId.id)
           .then(({ data }) => { return data })
-        console.log("route ", route)
         const routeId = route.map((item) => item.id)
 
         const trips = await supabase.from("trips").select("*,bus_type_id(*)")
           .in("route_id", routeId)
           .eq("date", store.travelDate)
-          .gte("available_seats", 1)
+          .gte("available_seats", store.passengerCount)
 
         console.log("trips ", trips.data)
-        setTrips(trips.data)
+        const filterTrips = trips.data.filter(r => moment(r.date + " " + r.departure_time).format() > moment().format())
+        console.log("filterTrips ", filterTrips)
+        setTrips(filterTrips)
 
         const busStopsRes = await supabase.from("bus_stops").select("*, route_id(*)");
         if (busStopsRes.data) {
@@ -63,32 +66,33 @@ const SearchResults = () => {
       } catch (error) {
         throw error
       }
- 
+
     }
     conf()
 
   }, [store])
 
-  const originBoardingPoints = useMemo(() => {
-    if (!store.originProvinceId || !busStops.length) return [];
-    return busStops.filter(r => 
-      store?.destinationProvinceId ? store?.destinationProvinceId?.id != r.route_id?.origin_id && r.route_id?.origin_id == store.originProvinceId?.id
-      : r.route_id?.origin_id == store.originProvinceId?.id
-    ).filter(r => r.type === "pickup" || r.type === "stop");
-  }, [busStops, store.originProvinceId, store.destinationProvinceId]);
+  // const originBoardingPoints = useMemo(() => {
+  //   if (!busStops.length) return [];
+  //   return busStops.filter(r => r.route_id == store.routeId?.id);
+  // }, [busStops]);
 
-  const destBoardingPoints = useMemo(() => {
-    if (!store.destinationProvinceId || !busStops.length) return [];
-    return busStops.filter(r => 
-      store?.originProvinceId ? store?.originProvinceId?.id != r.route_id?.destination_id && r.route_id?.destination_id == store.destinationProvinceId?.id
-      : r.route_id?.destination_id == store.destinationProvinceId?.id
-    ).filter(r => r.type === "dropoff" || r.type === "stop");
-  }, [busStops, store.destinationProvinceId, store.originProvinceId]);
+  // const destBoardingPoints = useMemo(() => {
+  //   if (!busStops.length) return [];
+  //   return busStops.filter(r => r.route_id == store.routeId?.id);
+  // }, [busStops]);
 
   const handleSelectTrip = (trip: typeof trips[0]) => {
     setSelectedTripToBook(trip);
     console.log("handleSelectTrip trip ", trip)
+    console.log("handleSelectTrip busStops ", busStops)
     store.setSelectedTrip(trip);
+    const originBoardingPoints = busStops.filter(r => r.route_id.id == trip.route_id).filter((r) => r.type == "pickup" || r.type == "stop");
+    const destBoardingPoints = busStops.filter(r => r.route_id.id == trip.route_id).filter((r) => r.type == "dropoff" || r.type == "stop");
+    console.log("originBoardingPoints ", originBoardingPoints)
+    console.log("destBoardingPoints ", destBoardingPoints)
+    setOriginBoardingPoints(originBoardingPoints);
+    setDestBoardingPoints(destBoardingPoints);
     if (store.boardingPointId) setLocalBoardingPoint(store.boardingPointId);
     if (store.dropOffPointId) setLocalDropOffPoint(store.dropOffPointId);
     setIsPopupOpen(true);
@@ -163,12 +167,12 @@ const SearchResults = () => {
                   <span>{store.originProvinceId?.name} - {store.destinationProvinceId?.name}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">{store.travelDate}</span>
-                <small className="text-muted-foreground" style={{fontWeight:"400"}}>เลือกจุดขึ้นรถและจุดลงรถ</small>
+                <small className="text-muted-foreground" style={{ fontWeight: "400" }}>เลือกจุดขึ้นรถและจุดลงรถ</small>
               </div>
             </DrawerTitle>
           </DrawerHeader>
           {selectedTripToBook && (
-            <div className="bg-muted p-3 rounded-lg mb-2"> 
+            <div className="bg-muted p-3 rounded-lg mb-2">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
