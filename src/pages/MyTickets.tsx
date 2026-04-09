@@ -60,8 +60,9 @@ type Ticket = {
 
 const statusConfig = {
   pending: { label: "กำลังจะถึง", variant: "default" as const },
-  confirmed: { label: "เสร็จสิ้น", variant: "secondary" as const },
+  confirmed: { label: "เสร็จสิ้น", variant: "default" as const },
   cancelled: { label: "ยกเลิก", variant: "destructive" as const },
+  expired: { label: "หมดเวลาชำระเงิน", variant: "secondary" as const },
 };
 
 const MyTicketsPage = () => {
@@ -103,7 +104,7 @@ const MyTicketsPage = () => {
                 .filter((t) => tab === "all" || t.status === tab)
                 .map((ticket) => (
                   <Link key={ticket.id} to={`/my-tickets/${ticket.id}`}>
-                    <Card className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all mb-4">
+                    <Card className={`cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all mb-4 ${ticket.status}`}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div>

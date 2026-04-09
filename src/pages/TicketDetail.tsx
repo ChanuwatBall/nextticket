@@ -10,6 +10,7 @@ import { supabase } from "@/http/supabase";
 import { bookingDetail } from "@/services/api";
 import QRCode from "qrcode";
 import moment from "moment";
+import "../css/TicketDetail.css"
 
 const mockTicketDetails: Record<string, {
   id: string;
@@ -114,8 +115,9 @@ const mockTicketDetails: Record<string, {
 
 const statusConfig = {
   pending: { label: "กำลังจะถึง", variant: "default" as const },
-  confirmed: { label: "เสร็จสิ้น", variant: "secondary" as const },
+  confirmed: { label: "เสร็จสิ้น", variant: "default" as const },
   cancelled: { label: "ยกเลิก", variant: "destructive" as const },
+  expired: { label: "หมดเวลาชำระเงิน", variant: "secondary" as const },
 };
 
 const passengerTypeLabels: Record<string, string> = {
@@ -164,8 +166,8 @@ const TicketDetail = () => {
     <BookingLayout showSteps={false} title="รายละเอียดตั๋ว" navto={() => navigate(-1)} >
       <div className="px-4 space-y-4 pb-6">
         {/* Route Header */}
-        <Card className="overflow-hidden">
-          <div className="bg-primary text-primary-foreground px-4 py-4">
+        <Card className={`overflow-hidden ${ticket.status}`}>
+          <div className={`${ticket.status === "pending" || ticket.status === "confirmed" ? "bg-primary" : "bg-gray-400"} text-primary-foreground px-4 py-4`}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs opacity-80">#{ticket.id.substring(0, 8).toUpperCase()}</span>
               <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
@@ -178,7 +180,7 @@ const TicketDetail = () => {
           </div>
 
           {/* QR for upcoming */}
-          {/* {ticket.status === "pending" && ( */}
+          {ticket.status === "pending" || ticket.status === "confirmed" && (
             <div className="flex flex-col items-center py-5 bg-card">
               <div className="border-2 border-border rounded-xl p-1 mb-1">
                 {/* <QrCode className="h-28 w-28 text-foreground" /> */}
@@ -186,11 +188,11 @@ const TicketDetail = () => {
               </div>
               <p className="text-xs text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
             </div>
-          {/* )} */}
+          )}
         </Card>
 
         {/* Trip Info */}
-        <Card>
+        <Card className={`${ticket.status}`}>
           <CardContent className="p-4 space-y-3">
             <h3 className="font-bold text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
@@ -212,7 +214,7 @@ const TicketDetail = () => {
         </Card>
 
         {/* Bus Info */}
-        <Card>
+        <Card className={`${ticket.status}`}>
           <CardContent className="p-4 space-y-3">
             <h3 className="font-bold text-base flex items-center gap-2">
               <Bus className="h-4 w-4 text-primary" />
@@ -232,7 +234,7 @@ const TicketDetail = () => {
         </Card>
 
         {/* Passengers */}
-        <Card>
+        <Card className={`${ticket.status}`}>
           <CardContent className="p-4 space-y-3">
             <h3 className="font-bold text-base flex items-center gap-2">
               <User className="h-4 w-4 text-primary" />
@@ -268,7 +270,7 @@ const TicketDetail = () => {
         </Card>
 
         {/* Booking & Payment Info */}
-        <Card>
+        <Card className={`${ticket.status}`}>
           <CardContent className="p-4 space-y-3">
             <h3 className="font-bold text-base flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-primary" />

@@ -55,14 +55,14 @@ const App = () => {
           const ltoken = await liff.getAccessToken()
           const reslogin = await loginWithLine({ lineAccessToken: ltoken })
           console.log("reslogin ", reslogin)
-          
+
           localStorage.setItem("user", JSON.stringify(reslogin))
-          
+
 
           console.log("p?.userId ", p?.userId)
           // const user = await supabase.from("users").select("*")
           //   .match({ 
-              
+
           //   })
           // console.log("user ", user)
 
@@ -70,9 +70,9 @@ const App = () => {
             full_name: p.displayName,
             avatar_url: p.pictureUrl
           })
-          .eq("id", reslogin.user.id) 
-          .eq("is_active", true)
-          .single()
+            .eq("id", reslogin.user.id)
+            .eq("is_active", true)
+            .single()
 
           console.log("res ", res)
         } else {
@@ -84,7 +84,7 @@ const App = () => {
 
             const reslogin = await loginWithLine({ lineAccessToken: ltoken })
             console.log("reslogin ", reslogin)
-            localStorage.setItem("user", JSON.stringify(reslogin.data))
+            localStorage.setItem("user", JSON.stringify(reslogin))
             // const res = await loginWithLine({ lineAccessToken: ltoken })
             // console.log("res line signin : ", res)
 

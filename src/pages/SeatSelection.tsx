@@ -53,13 +53,13 @@ const SeatSelection = () => {
   useEffect(() => {
     const fetchSeats = async () => {
       if (!id) return;
-      
+
       const tripData = await tripSeatsLayout(id);
       console.log("tripData:", tripData)
-      
+
       if (tripData && tripData.layout) {
         setLayout(tripData.layout);
-        
+
         // Map the seats and determine booked status based on the ID
         const updatedSeats = (tripData.seats || []).map((s: Seat) => {
           const isBooked = s.id.indexOf("gen-t") < 0;
@@ -68,7 +68,7 @@ const SeatSelection = () => {
           }
           return s;
         });
-        
+        console.log("updatedSeats ", updatedSeats)
         setSeats(updatedSeats);
       }
     };
@@ -126,7 +126,7 @@ const SeatSelection = () => {
         <div className="px-4">
           {/* Bus type label */}
           <div className="text-center text-sm font-semibold text-muted-foreground mb-3">
-            {layout.name} 
+            {layout.name}
           </div>
 
           {/* Legend */}
@@ -181,7 +181,7 @@ const SeatSelection = () => {
                       <button
                         key={seat.id}
                         onClick={() => toggleSeat(seat.id)}
-                        disabled={ seat.status === "booked" || seat.status === "unavailable"}
+                        disabled={seat.status === "booked" || seat.status === "unavailable"}
                         className={cn(
                           "w-11 h-11 rounded-lg text-xs font-bold transition-all",
                           statusColors[seat.status],
