@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
+import liff from "@line/liff";
+import { loginWithLine } from "@/services/api";
 
 const menuItems = [
   { label: "ตั๋วของฉัน", icon: Ticket, to: "/my-tickets" },
@@ -29,10 +31,18 @@ const Profile = () => {
 
 
   useEffect(() => {
-    const conf = () => {
+    const conf = async () => {
       const user = localStorage.getItem("user")
       if (user) {
-        setUser(user ? JSON.parse(user) : null)
+        if (user === "undefined") {
+          const ltoken = await liff.getAccessToken()
+          const reslogin = await loginWithLine({ lineAccessToken: ltoken })
+          console.log("reslogin ", reslogin)
+          localStorage.setItem("user", JSON.stringify(reslogin.data))
+          setUser(reslogin.data)
+        } else {
+          setUser(JSON.parse(user))
+        }
       }
     }
     conf()

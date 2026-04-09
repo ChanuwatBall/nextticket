@@ -113,9 +113,9 @@ const mockTicketDetails: Record<string, {
 };
 
 const statusConfig = {
-  upcoming: { label: "กำลังจะถึง", variant: "default" as const, color: "text-primary" },
-  completed: { label: "เสร็จสิ้น", variant: "secondary" as const, color: "text-muted-foreground" },
-  cancelled: { label: "ยกเลิก", variant: "destructive" as const, color: "text-destructive" },
+  pending: { label: "กำลังจะถึง", variant: "default" as const },
+  confirmed: { label: "เสร็จสิ้น", variant: "secondary" as const },
+  cancelled: { label: "ยกเลิก", variant: "destructive" as const },
 };
 
 const passengerTypeLabels: Record<string, string> = {
@@ -167,7 +167,7 @@ const TicketDetail = () => {
         <Card className="overflow-hidden">
           <div className="bg-primary text-primary-foreground px-4 py-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs opacity-80">#{ticket.id}</span>
+              <span className="text-xs opacity-80">#{ticket.id.substring(0, 8).toUpperCase()}</span>
               <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
             </div>
             <div className="flex items-center gap-2 text-lg font-bold">
@@ -178,7 +178,7 @@ const TicketDetail = () => {
           </div>
 
           {/* QR for upcoming */}
-          {ticket.status === "upcoming" && (
+          {/* {ticket.status === "pending" && ( */}
             <div className="flex flex-col items-center py-5 bg-card">
               <div className="border-2 border-border rounded-xl p-1 mb-1">
                 {/* <QrCode className="h-28 w-28 text-foreground" /> */}
@@ -186,7 +186,7 @@ const TicketDetail = () => {
               </div>
               <p className="text-xs text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
             </div>
-          )}
+          {/* )} */}
         </Card>
 
         {/* Trip Info */}

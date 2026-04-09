@@ -49,7 +49,7 @@ const Wallet = () => {
     } else {
       setBalance(res.balance)
       setAvailablePoints(res.point)
-      setTransaction(res.transactions && res.transactions.length > 0 ? res.transactions : mockTransactions)
+      setTransaction(res.transactions)
     }
   }
 

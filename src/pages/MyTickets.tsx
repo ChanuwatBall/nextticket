@@ -59,8 +59,8 @@ type Ticket = {
 }
 
 const statusConfig = {
-  upcoming: { label: "กำลังจะถึง", variant: "default" as const },
-  completed: { label: "เสร็จสิ้น", variant: "secondary" as const },
+  pending: { label: "กำลังจะถึง", variant: "default" as const },
+  confirmed: { label: "เสร็จสิ้น", variant: "secondary" as const },
   cancelled: { label: "ยกเลิก", variant: "destructive" as const },
 };
 
@@ -93,11 +93,11 @@ const MyTicketsPage = () => {
         <Tabs defaultValue="all">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="all" className="flex-1">ทั้งหมด</TabsTrigger>
-            <TabsTrigger value="upcoming" className="flex-1">กำลังจะถึง</TabsTrigger>
-            <TabsTrigger value="completed" className="flex-1">เสร็จสิ้น</TabsTrigger>
+            <TabsTrigger value="pending" className="flex-1">กำลังจะถึง</TabsTrigger>
+            <TabsTrigger value="confirmed" className="flex-1">เสร็จสิ้น</TabsTrigger>
           </TabsList>
 
-          {["all", "upcoming", "completed"].map((tab) => (
+          {["all", "pending", "confirmed"].map((tab) => (
             <TabsContent key={tab} value={tab} className="space-y-3">
               {tickets
                 .filter((t) => tab === "all" || t.status === tab)
