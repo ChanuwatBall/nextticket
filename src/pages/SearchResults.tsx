@@ -104,7 +104,7 @@ const SearchResults = () => {
       store.setDropOffPoint(localDropOffPoint);
       store.setSelectedTrip(selectedTripToBook);
       setIsPopupOpen(false);
-      navigate("/seats");
+      navigate("/seats/"+selectedTripToBook.id);
     }
   };
 

@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
 import PageTransition from "@/components/PageTransition";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
 import { useBookingStore } from "@/store/bookingStore";
 import { generateSeats, getBusLayout, isSpecialCell, type Seat, type SeatStatus, type BusLayout } from "@/data/mockData";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CircleDot } from "lucide-react";
 import { supabase } from "@/http/supabase";
+import { tripSeatsLayout } from "@/services/api";
 
 const statusColors: Record<SeatStatus, string> = {
   available: "bg-card border-2 border-primary/30 text-foreground hover:bg-primary/10 cursor-pointer",
@@ -29,10 +30,10 @@ const SeatSelection = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
   const trip = store.selectedTrip;
+  const { id } = useParams<{ id: string }>();
 
-  const layout = useMemo(() => getBusLayout(trip?.bus_type_id?.name ?? '', trip?.total_seats ?? 40), [trip]);
-  const initialSeats = useMemo(() => generateSeats(layout), [layout]);
-  const [seats, setSeats] = useState<Seat[]>(initialSeats);
+  const [layout, setLayout] = useState<BusLayout | null>(null);
+  const [seats, setSeats] = useState<Seat[]>([]);
 
 
   const selectedSeats = useMemo(() => seats.filter((s) => s.status === "selected"), [seats]);
@@ -51,46 +52,28 @@ const SeatSelection = () => {
 
   useEffect(() => {
     const fetchSeats = async () => {
-      if (!store.selectedTrip?.id) return;
-
-      const { data: seatData, error: seatError } = await supabase
-        .from("seats")
-        .select("*")
-        .eq("trip_id", store.selectedTrip.id);
-
-      if (seatError) {
-        console.error("Error fetching seats:", seatError);
-        return;
-      }
-
-      if (seatData) {
-        console.log("DB Seat Data for Trip:", store.selectedTrip?.id, seatData);
-        setSeats((prev) => {
-          const updated = prev.map((s) => {
-            const dbSeat = seatData.find(
-              (ds) => ds.seat_number.trim().toUpperCase() === s.number.trim().toUpperCase()
-            );
-
-            if (dbSeat) {
-              return {
-                ...s,
-                id: dbSeat.id,
-                status: "booked" as SeatStatus,
-                price: dbSeat.price,
-              };
-            }
-            // If not found in DB, just keep original mapped status (likely 'available')
-            return s;
-          });
-          console.log("Updated UI Seats state:", updated);
-          return updated;
+      if (!id) return;
+      
+      const tripData = await tripSeatsLayout(id);
+      console.log("tripData:", tripData)
+      
+      if (tripData && tripData.layout) {
+        setLayout(tripData.layout);
+        
+        // Map the seats and determine booked status based on the ID
+        const updatedSeats = (tripData.seats || []).map((s: Seat) => {
+          const isBooked = s.id.indexOf("gen-t") < 0;
+          if (isBooked) {
+            return { ...s, status: "booked" as SeatStatus };
+          }
+          return s;
         });
-      } else {
-        console.warn("No seatData returned from Supabase for trip:", store.selectedTrip?.id);
+        
+        setSeats(updatedSeats);
       }
     };
     fetchSeats();
-  }, [store.selectedTrip?.id]);
+  }, [id]);
 
   const handleContinue = () => {
     store.setSelectedSeats(selectedSeats);
@@ -125,13 +108,25 @@ const SeatSelection = () => {
     lockSeat();
   }
 
+  if (!layout) {
+    return (
+      <PageTransition>
+        <BookingLayout currentStep={3} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
+          <div className="flex items-center justify-center p-8 text-muted-foreground">
+            กำลังโหลดข้อมูลที่นั่ง...
+          </div>
+        </BookingLayout>
+      </PageTransition>
+    );
+  }
+
   return (
     <PageTransition>
       <BookingLayout currentStep={3} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
         <div className="px-4">
           {/* Bus type label */}
           <div className="text-center text-sm font-semibold text-muted-foreground mb-3">
-            {layout.name} — ชั้นเดียว
+            {layout.name} 
           </div>
 
           {/* Legend */}
@@ -186,7 +181,7 @@ const SeatSelection = () => {
                       <button
                         key={seat.id}
                         onClick={() => toggleSeat(seat.id)}
-                        disabled={seat.status === "booked" || seat.status === "unavailable"}
+                        disabled={ seat.status === "booked" || seat.status === "unavailable"}
                         className={cn(
                           "w-11 h-11 rounded-lg text-xs font-bold transition-all",
                           statusColors[seat.status],

@@ -107,6 +107,19 @@ export const bookingDetail = async ({ id, token }: any) => {
       return err.response.data
     })
 }
+export const tripSeatsLayout=async(tripid:string)=>{
+// curl '/api/trips/{id}/seats'
+  return await api.get(`/api/trips/${tripid}/seats`)
+    .then((res) => {
+      console.log("tripSeatsLayout res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("tripSeatsLayout err ", err)
+      return err.response.data
+    })
+}
+
 export const chargeWechatPayment = async (amount: any) => {
   return await api.post("/api/payment/wechat-pay", {
     amount: amount
