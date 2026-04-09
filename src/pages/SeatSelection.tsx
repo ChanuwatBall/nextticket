@@ -62,7 +62,7 @@ const SeatSelection = () => {
 
         // Map the seats and determine booked status based on the ID
         const updatedSeats = (tripData.seats || []).map((s: Seat) => {
-          const isBooked = s.id.indexOf("gen-t") < 0;
+          const isBooked = s.status === "available" ? false : true
           if (isBooked) {
             return { ...s, status: "booked" as SeatStatus };
           }
