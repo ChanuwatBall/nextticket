@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CircleDot } from "lucide-react";
 import { supabase } from "@/http/supabase";
-import { tripSeatsLayout } from "@/services/api";
+import { getTripDetail, tripSeatsLayout } from "@/services/api";
+import { TripDetail } from "@/data/TripDetail";
 
 const statusColors: Record<SeatStatus, string> = {
   available: "bg-card border-2 border-primary/30 text-foreground hover:bg-primary/10 cursor-pointer",
@@ -34,6 +35,7 @@ const SeatSelection = () => {
 
   const [layout, setLayout] = useState<BusLayout | null>(null);
   const [seats, setSeats] = useState<Seat[]>([]);
+  const [tripDetail, setTripDetail] = useState<TripDetail>(null);
 
 
   const selectedSeats = useMemo(() => seats.filter((s) => s.status === "selected"), [seats]);
@@ -71,6 +73,10 @@ const SeatSelection = () => {
         console.log("updatedSeats ", updatedSeats)
         setSeats(updatedSeats);
       }
+
+      const tdetail = await getTripDetail(id)
+      console.log("tdetail ", tdetail)
+      setTripDetail(tdetail)
     };
     fetchSeats();
   }, [id]);
@@ -125,9 +131,10 @@ const SeatSelection = () => {
       <BookingLayout currentStep={3} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
         <div className="px-4">
           {/* Bus type label */}
-          <div className="text-center text-sm font-semibold text-muted-foreground mb-3">
-            {layout.name}
-          </div>
+          {tripDetail && <div className="text-center text-sm font-semibold text-muted-foreground mb-3">
+            {/* {layout.name} */}
+            {tripDetail?.busType} {tripDetail?.tripType} {tripDetail?.totalSeats} ที่นั่ง
+          </div>}
 
           {/* Legend */}
           <div className="flex items-center gap-4 text-xs mb-4 flex-wrap">

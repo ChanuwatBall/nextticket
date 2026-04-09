@@ -107,8 +107,8 @@ export const bookingDetail = async ({ id, token }: any) => {
       return err.response.data
     })
 }
-export const tripSeatsLayout=async(tripid:string)=>{
-// curl '/api/trips/{id}/seats'
+export const tripSeatsLayout = async (tripid: string) => {
+  // curl '/api/trips/{id}/seats'
   return await api.get(`/api/trips/${tripid}/seats`)
     .then((res) => {
       console.log("tripSeatsLayout res ", res)
@@ -119,6 +119,20 @@ export const tripSeatsLayout=async(tripid:string)=>{
       return err.response.data
     })
 }
+
+export const getTripDetail = async (tripid: string) => {
+  //https://nex-api.rubyclaw.tech/api/trips/{id}
+  return await api.get(`/api/trips/${tripid}`)
+    .then((res) => {
+      console.log("tripDetail res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("tripDetail err ", err)
+      return err.response.data
+    })
+}
+
 
 export const chargeWechatPayment = async (amount: any) => {
   return await api.post("/api/payment/wechat-pay", {

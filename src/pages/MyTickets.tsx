@@ -60,9 +60,9 @@ type Ticket = {
 
 const statusConfig = {
   pending: { label: "กำลังจะถึง", variant: "default" as const },
-  confirmed: { label: "เสร็จสิ้น", variant: "default" as const },
+  confirmed: { label: "เสร็จสิ้น", variant: "success" as const },
   cancelled: { label: "ยกเลิก", variant: "destructive" as const },
-  expired: { label: "หมดเวลาชำระเงิน", variant: "secondary" as const },
+  expired: { label: "หมดเวลาชำระเงิน", variant: "outline" as const },
 };
 
 const MyTicketsPage = () => {
