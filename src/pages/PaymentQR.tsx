@@ -279,15 +279,9 @@ const PaymentQRPage = () => {
           "expiresAt": string
         } = null
         if (sourceType === "promptpay") {
-          payqr = await chargeQrPayment({
-            total: total,
-            description: `NEX ${store.selectedTrip?.id} ${store.selectedSeats.map(s => s.number).join(",")}`
-          })
+          payqr = await chargeQrPayment(total)
         } else if (sourceType === "wechat_pay_mpm") {
-          payqr = await chargeWechatPayment({
-            total: total,
-            description: `NEX ${store.selectedTrip?.id} ${store.selectedSeats.map(s => s.number).join(",")}`
-          })
+          payqr = await chargeWechatPayment(total)
         }
         console.log("payqr ", payqr)
         setQrUrl(payqr.qrCodeUrl);

@@ -135,9 +135,9 @@ export const getTripDetail = async (tripid: string) => {
 }
 
 
-export const chargeWechatPayment = async ({ amount, description }: any) => {
-  return await api.post(`/api/payment/wechat-pay?amount=${amount}`, {
-    description: description
+export const chargeWechatPayment = async (amount: any) => {
+  return await api.post("/api/payment/wechat-pay", {
+    amount: amount
   })
     .then((res) => {
       console.log("chargeWechatPayment res ", res)
@@ -148,9 +148,9 @@ export const chargeWechatPayment = async ({ amount, description }: any) => {
       return err.response.data
     })
 }
-export const chargeQrPayment = async ({ amount, description }: any) => {
-  return await api.post(`/api/payment/qr?amount=${amount}`, {
-    description: description
+export const chargeQrPayment = async (amount: any) => {
+  return await api.post("/api/payment/qr", {
+    amount: amount
   })
     .then((res) => {
       console.log("chargeQrPayment res ", res)
