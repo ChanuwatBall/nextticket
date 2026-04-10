@@ -224,6 +224,7 @@ const SeatSelection = () => {
           >
             ดำเนินการต่อ
           </Button>
+          <div style={{ width: "100%", height: "10rem" }}></div>
         </div>
       </BookingLayout >
     </PageTransition >
