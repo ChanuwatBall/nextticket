@@ -61,86 +61,86 @@ const PaymentQRPage = () => {
     if (chargeStatus === "successful") return;
 
     // const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const qrBookingPayload = JSON.stringify({
-      booking_reference: id
-    });
-    const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
-    store.setBookingQrcode(qrBookingCode);
-    const passengers = bookingBody.passengers;
-    for (const passenger of passengers) {
-      const { data: ticketData, error: ticketError } = await supabase.from("tickets").select("*")
-        .eq("booking_id", bookingId)
-        .eq("seat_number", passenger.seatNumber)
-        .eq("passenger_name", passenger.fullName)
-        .eq("passenger_id_card", passenger.thaiId)
-        .eq("passenger_phone", passenger.phone)
-        .eq("passenger_type", passenger.passengerType)
-        .select().single()
-      if (ticketError) console.error("Supabase ticket error:", ticketError);
-      console.log("ticketData ", ticketData)
-      const { data: seatData, error: seatError } = await supabase.from("seats").select("*")
-        .eq("trip_id", store.selectedTrip?.id)
-        .eq("seat_number", passenger.seatNumber)
-        .single()
-      if (seatError) console.error("Supabase seat error:", seatError);
-      console.log("seatData ", seatData)
-      const { data: updateSeatData, error: updateSeatError } = await supabase.from("seats").update({
-        ticket_id: ticketData.id
-      }).eq("id", seatData.id).select()
-      if (updateSeatError) console.error("Supabase update seat error:", updateSeatError);
-      console.log("updateSeatData ", updateSeatData)
+    // const qrBookingPayload = JSON.stringify({
+    //   booking_reference: id
+    // });
+    // const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+    // store.setBookingQrcode(qrBookingCode);
+    // const passengers = bookingBody.passengers;
+    // for (const passenger of passengers) {
+    //   const { data: ticketData, error: ticketError } = await supabase.from("tickets").select("*")
+    //     .eq("booking_id", bookingId)
+    //     .eq("seat_number", passenger.seatNumber)
+    //     .eq("passenger_name", passenger.fullName)
+    //     .eq("passenger_id_card", passenger.thaiId)
+    //     .eq("passenger_phone", passenger.phone)
+    //     .eq("passenger_type", passenger.passengerType)
+    //     .select().single()
+    //   if (ticketError) console.error("Supabase ticket error:", ticketError);
+    //   console.log("ticketData ", ticketData)
+    //   const { data: seatData, error: seatError } = await supabase.from("seats").select("*")
+    //     .eq("trip_id", store.selectedTrip?.id)
+    //     .eq("seat_number", passenger.seatNumber)
+    //     .single()
+    //   if (seatError) console.error("Supabase seat error:", seatError);
+    //   console.log("seatData ", seatData)
+    //   const { data: updateSeatData, error: updateSeatError } = await supabase.from("seats").update({
+    //     ticket_id: ticketData.id
+    //   }).eq("id", seatData.id).select()
+    //   if (updateSeatError) console.error("Supabase update seat error:", updateSeatError);
+    //   console.log("updateSeatData ", updateSeatData)
 
-      // const ticketBody = {
-      //   booking_id: bookingId,
-      //   ticket_number: (store.selectedTrip?.id + passenger.seatNumber + moment().format("YYYYMMDDHHmmss")).toUpperCase(),
-      //   passenger_name: passenger.fullName,
-      //   passenger_phone: passenger.phone,
-      //   passenger_id_card: passenger.thaiId,
-      //   seat_number: passenger.seatNumber,
-      //   passenger_type: passenger.passengerType,
-      //   price: store.selectedTrip?.price,
-      //   status: "active",
-      //   checked_in_at: null,
-      // };
-      // const qrTicketPayload = JSON.stringify(ticketBody);
-      // const qrCodeTicket = await QRCode.toDataURL(qrTicketPayload);
-      // const {
-      //   error: ticketError,
-      //   data: ticketData
-      // } = await supabase.from("tickets")
-      //   .insert({
-      //     ...ticketBody,
-      //     qr_code: qrCodeTicket,
-      //     booking_id: bookingId
-      //   })
-      //   .select();
+    // const ticketBody = {
+    //   booking_id: bookingId,
+    //   ticket_number: (store.selectedTrip?.id + passenger.seatNumber + moment().format("YYYYMMDDHHmmss")).toUpperCase(),
+    //   passenger_name: passenger.fullName,
+    //   passenger_phone: passenger.phone,
+    //   passenger_id_card: passenger.thaiId,
+    //   seat_number: passenger.seatNumber,
+    //   passenger_type: passenger.passengerType,
+    //   price: store.selectedTrip?.price,
+    //   status: "active",
+    //   checked_in_at: null,
+    // };
+    // const qrTicketPayload = JSON.stringify(ticketBody);
+    // const qrCodeTicket = await QRCode.toDataURL(qrTicketPayload);
+    // const {
+    //   error: ticketError,
+    //   data: ticketData
+    // } = await supabase.from("tickets")
+    //   .insert({
+    //     ...ticketBody,
+    //     qr_code: qrCodeTicket,
+    //     booking_id: bookingId
+    //   })
+    //   .select();
 
-      // if (ticketError) {
-      //   console.error("Supabase ticket error:", ticketError);
-      //   continue;
-      // }
-      // console.log("ticketData ", ticketData)
+    // if (ticketError) {
+    //   console.error("Supabase ticket error:", ticketError);
+    //   continue;
+    // }
+    // console.log("ticketData ", ticketData)
 
-      // if (ticketData && ticketData.length > 0) {
-      //   const seatPayload = {
-      //     trip_id: store.selectedTrip?.id,
-      //     seat_number: passenger.seatNumber,
-      //     seat_type: passenger.seatType,
-      //     ticket_id: ticketData[0].id,
-      //     // is_available: true,
-      //     // booking_id: bookingId,
-      //     price: store?.selectedTrip?.price,
-      //   };
-      //   const { data: seateData, error: seatError } = await supabase.from("seats")
-      //     .update(seatPayload)
-      //     .eq("trip_id", store.selectedTrip?.id)
-      //     .eq("seat_number", passenger.seatNumber)
-      //     .select()
-      //   if (seatError) console.error("Supabase seat error:", seatError);
-      //   console.log("seateData ", seateData)
-      // }
-      setQrLoading(false);
-    }
+    // if (ticketData && ticketData.length > 0) {
+    //   const seatPayload = {
+    //     trip_id: store.selectedTrip?.id,
+    //     seat_number: passenger.seatNumber,
+    //     seat_type: passenger.seatType,
+    //     ticket_id: ticketData[0].id,
+    //     // is_available: true,
+    //     // booking_id: bookingId,
+    //     price: store?.selectedTrip?.price,
+    //   };
+    //   const { data: seateData, error: seatError } = await supabase.from("seats")
+    //     .update(seatPayload)
+    //     .eq("trip_id", store.selectedTrip?.id)
+    //     .eq("seat_number", passenger.seatNumber)
+    //     .select()
+    //   if (seatError) console.error("Supabase seat error:", seatError);
+    //   console.log("seateData ", seateData)
+    // }
+    //   setQrLoading(false);
+    // }
 
     setChargeStatus("successful");
     setPaymentStatus("success");
