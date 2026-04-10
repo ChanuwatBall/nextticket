@@ -60,12 +60,12 @@ const PaymentQRPage = () => {
   const handlePaymentSuccess = useCallback(async (id: string) => {
     if (chargeStatus === "successful") return;
 
-    // const user = JSON.parse(localStorage.getItem("user") || "{}");
-    // const qrBookingPayload = JSON.stringify({
-    //   booking_reference: id
-    // });
-    // const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
-    // store.setBookingQrcode(qrBookingCode);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const qrBookingPayload = JSON.stringify({
+      booking_reference: id
+    });
+    const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+    store.setBookingQrcode(qrBookingCode);
     // const passengers = bookingBody.passengers;
     // for (const passenger of passengers) {
     //   const { data: ticketData, error: ticketError } = await supabase.from("tickets").select("*")
