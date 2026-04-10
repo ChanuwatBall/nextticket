@@ -15,8 +15,8 @@ interface BookingState {
   routeGroupid: any;
   routeId: any;
   travelDate: any;
-  originProvinceId: { id: any, name: string, name_en: string };
-  destinationProvinceId: { id: string, name: string, name_en: string };
+  originProvinceId: { id: any, name: string, name_en: string } | null;
+  destinationProvinceId: { id: any, name: string, name_en: string } | null;
   boardingPointId: any;
   dropOffPointId: any;
   passengerCount: number;
@@ -37,7 +37,7 @@ interface BookingState {
   bookingId: any;
   booking_qrcode: string;
   paymentStatus: 'pending' | 'success' | 'failed' | null;
-
+  newBookingId: any;
   // Actions
   setRouteGroupId: (routeGroupid: any) => void;
   setRoute: (routeId: any) => void;
@@ -56,6 +56,7 @@ interface BookingState {
   setBookingId: (id: string) => void;
   setPaymentStatus: (status: 'pending' | 'success' | 'failed' | null) => void;
   setBookingQrcode: (booking_qrcode: string) => void;
+  setNewBookingId: (newBookingId: any) => void;
   reset: () => void;
 }
 
@@ -63,8 +64,8 @@ const initialState = {
   routeGroupid: "",
   routeId: '',
   travelDate: '',
-  originProvinceId: '',
-  destinationProvinceId: '',
+  originProvinceId: null,
+  destinationProvinceId: null,
   boardingPointId: '',
   dropOffPointId: '',
   passengerCount: 1,
@@ -77,6 +78,7 @@ const initialState = {
   bookingId: '',
   booking_qrcode: '',
   paymentStatus: null as 'pending' | 'success' | 'failed' | null,
+  newBookingId: '',
 };
 
 export const useBookingStore = create<BookingState>((set) => ({
@@ -98,5 +100,6 @@ export const useBookingStore = create<BookingState>((set) => ({
   setBookingId: (bookingId) => set({ bookingId }),
   setPaymentStatus: (paymentStatus) => set({ paymentStatus }),
   setBookingQrcode: (booking_qrcode) => set({ booking_qrcode }),
+  setNewBookingId: (newBookingId) => set({ newBookingId }),
   reset: () => set(initialState),
 }));

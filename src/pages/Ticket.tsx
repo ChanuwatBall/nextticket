@@ -176,7 +176,7 @@ const Ticket = () => {
             <div className="flex items-center gap-1 h-10 w-full items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
               <input
                 type="text"
-                value={store.originProvinceId?.name}
+                value={store.originProvinceId?.name || ""}
                 placeholder="เลือกต้นทาง"
                 onFocus={() => setOpenOrigin(true)}
                 onChange={(e) => { setStartpoint(e.target.value); }}
@@ -216,7 +216,7 @@ const Ticket = () => {
             <div className="flex items-center gap-1 h-10 w-full items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
               <input
                 type="text"
-                value={store.destinationProvinceId?.name}
+                value={store.destinationProvinceId?.name || ""}
                 placeholder="เลือกปลายทาง  "
                 onFocus={() => setOpenDestination(true)}
                 // onChange={(e) => { setStartpoint(e.target.value); }}

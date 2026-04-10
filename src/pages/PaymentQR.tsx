@@ -36,13 +36,8 @@ const PaymentQRPage = () => {
   const setPaymentStatus = useBookingStore((s) => s.setPaymentStatus);
   const resetStore = useBookingStore((s) => s.reset);
   const store = useBookingStore();
-  const [bookingId, setBookingId] = useState<{
-    "bookingId": string
-    "bookingReference": string
-    "status": string
-    "expiresAt": string
-    "total": number
-  } | null>(null);
+  const [bookingref, setBookingRef] = useState<string | null>(null)
+  const [bookingId, setBookingId] = useState<string | null>(null);
   // ดึง Base URL ของ API (เช่น http://localhost:8080)
   const baseUrl = import.meta.env.VITE_SOCKET_URL;
 
@@ -65,17 +60,17 @@ const PaymentQRPage = () => {
   const handlePaymentSuccess = useCallback(async () => {
     if (chargeStatus === "successful") return;
 
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const qrBookingPayload = JSON.stringify({
-      booking_reference: bookingId?.bookingReference
-    });
-    const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
-    store.setBookingQrcode(qrBookingCode);
+    // const user = JSON.parse(localStorage.getItem("user") || "{}");
+    // const qrBookingPayload = JSON.stringify({
+    //   booking_reference: bookingId
+    // });
+    // const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+    // store.setBookingQrcode(qrBookingCode);
 
     setChargeStatus("successful");
     setPaymentStatus("success");
     // setBookingId(`NEX${Date.now().toString(36).toUpperCase()}`);
-    setTimeout(() => navigate("/e-ticket"), 2000);
+    setTimeout(() => navigate("/e-ticket/" + store?.newBookingId), 2000);
   }, [chargeStatus, store, bookingBody, setPaymentStatus, navigate]);
 
   const handlePaymentFailed = useCallback(async (id: string) => {
@@ -190,21 +185,24 @@ const PaymentQRPage = () => {
           }, 1000)
           return
         } else {
-          setBookingId(bookingres)
+          setBookingId(bookingres?.bookingId)
+          setBookingRef(bookingres?.bookingReference)
+          store.setNewBookingId(bookingres?.bookingId)
           // console.log("bookingbody ", bookingbody)
           const qrBookingPayload = JSON.stringify({
-            booking_id: bookingres.bookingId
+            booking_id: bookingres.bookingReference
           });
           const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
-          const { data, error } = await supabase.from("bookings").update({
-            "qr_code": qrBookingCode
-          }).eq("booking_id", bookingres.bookingId)
-          console.log("data ", data)
-          if (error) {
-            throw error
-          } else {
-            console.log("update qr code success ", qrBookingCode)
-          }
+          store.setBookingQrcode(qrBookingCode);
+          // const { data, error } = await supabase.from("bookings").update({
+          //   "qr_code": qrBookingCode
+          // }).eq("booking_id", bookingres.bookingId)
+          // console.log("data ", data)
+          // if (error) {
+          //   throw error
+          // } else {
+          //   console.log("update qr code success ", qrBookingCode)
+          // }
 
         }
         // console.log("inserted booking data ", data)

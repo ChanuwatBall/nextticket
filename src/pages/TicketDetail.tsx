@@ -141,7 +141,7 @@ const TicketDetail = () => {
       const qrBookingPayload = JSON.stringify({
         booking_id: detail.bookingReference
       });
-      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + detail.bookingReference);
       setQr(qrBookingCode)
       console.log("booking id detail", detail)
       setTicket(detail);
