@@ -133,6 +133,7 @@ const ETicketPage = () => {
             กลับหน้าแรก
           </Button>
         </div>
+        <div style={{ width: "100%", height: "5rem" }}></div>
       </div>
     </BookingLayout>
   );
