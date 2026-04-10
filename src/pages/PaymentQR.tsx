@@ -279,9 +279,15 @@ const PaymentQRPage = () => {
           "expiresAt": string
         } = null
         if (sourceType === "promptpay") {
-          payqr = await chargeQrPayment(total)
+          payqr = await chargeQrPayment({
+            total: total,
+            description: `NEX ${store.selectedTrip?.id} ${store.selectedSeats.map(s => s.number).join(",")}`
+          })
         } else if (sourceType === "wechat_pay_mpm") {
-          payqr = await chargeWechatPayment(total)
+          payqr = await chargeWechatPayment({
+            total: total,
+            description: `NEX ${store.selectedTrip?.id} ${store.selectedSeats.map(s => s.number).join(",")}`
+          })
         }
         console.log("payqr ", payqr)
         setQrUrl(payqr.qrCodeUrl);
@@ -301,7 +307,8 @@ const PaymentQRPage = () => {
               trip_id: store?.selectedTrip?.id
             }
           }),
-          "promoCode": store.promoCode
+          "promoCode": store.promoCode,
+          "omiseChargeId": payqr.chargeId
         }
         console.log("bookingPayload ", bookingPayload)
         const bookingres = await createBooking(bookingPayload)
