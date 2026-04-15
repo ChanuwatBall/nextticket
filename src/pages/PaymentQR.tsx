@@ -8,7 +8,7 @@ import { useBookingStore } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Timer, AlertCircle, CheckCircle2, Store } from "lucide-react";
-import { createCharge, cancelCharge, createBooking, NewBooking, chargeQrPayment, paymentStatus, chargeWechatPayment } from "@/services/api";
+import { createCharge, cancelCharge, createBooking, NewBooking, chargeQrPayment, paymentStatus, chargeWechatPayment, chargeAlipayPayment } from "@/services/api";
 import QRCode from "qrcode";
 import liff from "@line/liff";
 
@@ -142,6 +142,8 @@ const PaymentQRPage = () => {
           payqr = await chargeQrPayment(total)
         } else if (sourceType === "wechat_pay_mpm") {
           payqr = await chargeWechatPayment(total)
+        } else if (sourceType === "alipay") {
+          payqr = await chargeAlipayPayment(total)
         }
         console.log("payqr ", payqr)
         setQrUrl(payqr.qrCodeUrl);
@@ -227,15 +229,26 @@ const PaymentQRPage = () => {
     };
   }, [total, sourceType]);
 
-  const handleDownloadQR = useCallback(() => {
+  const handleDownloadQR = useCallback(async () => {
     if (!qrUrl) return;
     if (liff.isInClient && liff.isInClient()) {
       liff.openWindow({ url: qrUrl, external: true });
     } else {
-      const link = document.createElement("a");
-      link.href = qrUrl;
-      link.download = `qr-code-${chargeId}.png`;
-      link.click();
+      try {
+        const response = await fetch(qrUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `qr-code-${chargeId}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Download failed:", error);
+        window.open(qrUrl, "_blank");
+      }
     }
   }, [qrUrl, chargeId]);
 

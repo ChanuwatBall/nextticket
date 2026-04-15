@@ -27,7 +27,7 @@ const Ticket = () => {
   const [rgId, setRgId] = useState<any>(null);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [busStops,setBusStops] = useState<BusStops[]>([])
-  const [routes, setRoute] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>([]);
   const [boardingPoints, setBoardingPoints] = useState<[]>([]);
   const [selectOrigin, setSelectOrigin] = useState<any>(null);
   const [selectDest, setSelectDest] = useState<any>(null);
@@ -61,6 +61,13 @@ const Ticket = () => {
           setProvinces(res.data)
 
         })
+      } catch (error) {
+        throw error
+      }
+
+      try {
+        const res = await supabase.from("routes").select("*")
+        setRoutes(res.data)
       } catch (error) {
         throw error
       }
@@ -106,6 +113,44 @@ const Ticket = () => {
     }
     conf()
   }, [store])
+
+  const filteredRoutes = useMemo(() => {
+    if (!store?.routeGroupid) return routes;
+    return routes.filter((r) => r.region_id === store.routeGroupid);
+  }, [routes, store?.routeGroupid]);
+
+  const filteredProvinces = useMemo(() => {
+    if (!store?.routeGroupid) return provinces;
+    const availableIds = new Set();
+    filteredRoutes.forEach(r => {
+      availableIds.add(r.origin_id);
+      availableIds.add(r.destination_id);
+    });
+    return provinces.filter(p => availableIds.has(p.id));
+  }, [provinces, filteredRoutes, store?.routeGroupid]);
+
+  const filteredProvinceByDestination = useMemo(() => {
+    if (!store.originProvinceId) return filteredProvinces;
+    
+    const reachableDestIds = new Set(
+      filteredRoutes
+        .filter(r => r.origin_id === store.originProvinceId.id)
+        .map(r => r.destination_id)
+    );
+    
+    return filteredProvinces.filter(p => reachableDestIds.has(p.id));
+  }, [filteredProvinces, filteredRoutes, store?.originProvinceId]);
+
+  const chooseGroup = (r: any) => {
+    if (store?.routeGroupid === r.g_route_id) {
+      store?.setRouteGroupId(null)
+    } else {
+      store?.setRouteGroupId(r.g_route_id)
+    }
+    store.setRoute(null)
+    store.setOriginProvince(null)
+    store.setDestinationProvince(null)
+  }
 
   const chooseOrigin = async (province_id: any, busstops: any[] ) => {
     console.log("chooseOrigin province_id ", province_id)
@@ -156,10 +201,8 @@ const Ticket = () => {
         <div className="grid  " >
           <div className="scrollbar flex-shrink-0 flex " style={{ width: "100%", overflowX: "scroll" }}>
             {routeGroup.map((r) => (
-              <button key={r.id} onClick={() => {
-                setRgId(r.g_route_id)
-              }}>
-                <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", rgId === r.g_route_id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
+              <button key={r.id} onClick={() => chooseGroup(r)}>
+                <span className={cn("block text-center py-2 px-4 rounded-lg font-medium transition-colors whitespace-nowrap mr-1", store?.routeGroupid === r.g_route_id ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80")}>
                   {r.name}
                 </span>
               </button>
@@ -188,7 +231,7 @@ const Ticket = () => {
             </div>
             {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
               <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                {provinces.map((p) => (
+                {filteredProvinces.map((p) => (
                   <li
                     key={p.id}
                     className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
@@ -228,7 +271,7 @@ const Ticket = () => {
             </div>
             {openDestination && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
               <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                {provinces.map((p) => (
+                {filteredProvinceByDestination.map((p) => (
                   <li
                     key={p.id}
                     className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"

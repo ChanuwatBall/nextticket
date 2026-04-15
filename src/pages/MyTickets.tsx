@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -58,50 +59,94 @@ type Ticket = {
   "total": 480
 }
 
-const statusConfig = {
-  pending: { label: "กำลังจะถึง", variant: "default" as const },
-  confirmed: { label: "เสร็จสิ้น", variant: "success" as const },
-  cancelled: { label: "ยกเลิก", variant: "destructive" as const },
-  expired: { label: "หมดเวลาชำระเงิน", variant: "outline" as const },
+const statusConfig: Record<string, { label: string, variant: "default" | "success" | "destructive" | "outline" | "secondary" }> = {
+  pending: { label: "รอชำระเงิน", variant: "secondary" },
+  upcoming: { label: "กำลังจะถึง", variant: "default" },
+  confirmed: { label: "เสร็จสิ้น", variant: "success" },
+  cancelled: { label: "ยกเลิก", variant: "destructive" },
+  expired: { label: "หมดเวลาชำระเงิน", variant: "outline" },
+};
+
+const getTicketStatus = (ticket: any) => {
+  let key = 'confirmed';
+  if (ticket.status === "cancelled") key = "cancelled";
+  else if (ticket.status === "expired") key = "expired";
+  else if (ticket.paymentStatus === "pending") {
+    if (moment().isBefore(moment(ticket.expiresAt))) {
+      key = "pending";
+    } else {
+      key = "expired";
+    }
+  } else {
+    // For paid tickets, check trip time
+    const tripTime = moment(`${ticket.date} ${ticket.departureTime}`, "YYYY-MM-DD HH:mm");
+    if (moment().isBefore(tripTime)) {
+      key = "upcoming";
+    } else {
+      key = "confirmed";
+    }
+  }
+
+  return { ...statusConfig[key], key };
 };
 
 const MyTicketsPage = () => {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState<Ticket[]>([])
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 })
+  const [loading, setLoading] = useState(false)
 
-  const getTickets = async () => {
+  const getTickets = async (page = 1) => {
+    if (loading) return;
+    setLoading(true)
     try {
-      const bookings = await bookingList()
+      const bookings = await bookingList(page)
       if (bookings.error) {
         toast.error("ไม่สามารถดึงข้อมูลตั๋วได้ " + bookings.error)
         return
       }
-      console.log("bookings ", bookings)
 
-      setTickets(bookings)
+      if (page === 1) {
+        setTickets(bookings.data)
+      } else {
+        setTickets(prev => [...prev, ...bookings.data])
+      }
+
+      if (bookings.pagination) {
+        setPagination(bookings.pagination)
+      }
 
     } catch (error) {
       console.log("error ", error)
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    getTickets()
+    getTickets(1)
   }, [])
   return (
     <BookingLayout showSteps={false} title="ตั๋วของฉัน" navto={() => navigate(-1)}  >
       <div className="px-4">
-        <Tabs defaultValue="all">
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="all" className="flex-1">ทั้งหมด</TabsTrigger>
-            <TabsTrigger value="pending" className="flex-1">กำลังจะถึง</TabsTrigger>
-            <TabsTrigger value="confirmed" className="flex-1">เสร็จสิ้น</TabsTrigger>
+        <Tabs defaultValue="upcoming">
+          <TabsList className="w-full mb-4 overflow-x-auto justify-start scrollbar-hide">
+            <TabsTrigger value="upcoming" className="flex-1 text-xs whitespace-nowrap">กำลังจะถึง</TabsTrigger>
+            <TabsTrigger value="pending" className="flex-1 text-xs whitespace-nowrap">รอชำระเงิน</TabsTrigger>
+            <TabsTrigger value="confirmed" className="flex-1 text-xs whitespace-nowrap">เสร็จสิ้น</TabsTrigger>
+            <TabsTrigger value="failed" className="flex-1 text-xs whitespace-nowrap">ไม่สำเร็จ</TabsTrigger>
+            <TabsTrigger value="all" className="flex-1 text-xs whitespace-nowrap">ทั้งหมด</TabsTrigger>
           </TabsList>
 
-          {["all", "pending", "confirmed"].map((tab) => (
+          {["upcoming", "pending", "confirmed", "failed", "all"].map((tab) => (
             <TabsContent key={tab} value={tab} className="space-y-3">
-              {tickets
-                .filter((t) => tab === "all" || t.status === tab)
+              {tickets && tickets
+                .filter((t) => {
+                  const statusKey = getTicketStatus(t).key;
+                  if (tab === "all") return true;
+                  if (tab === "failed") return statusKey === "cancelled" || statusKey === "expired";
+                  return statusKey === tab;
+                })
                 .map((ticket) => (
                   <Link key={ticket.id} to={`/my-tickets/${ticket.id}`}>
                     <Card className={`cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all mb-4 ${ticket.status}`}>
@@ -114,8 +159,8 @@ const MyTicketsPage = () => {
                               <span className="font-bold">{ticket.origin} → {ticket.destination}</span>
                             </div>
                           </div>
-                          <Badge variant={statusConfig[ticket.status].variant}>
-                            {statusConfig[ticket.status].label}
+                          <Badge variant={getTicketStatus(ticket).variant}>
+                            {getTicketStatus(ticket).label}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -134,9 +179,23 @@ const MyTicketsPage = () => {
                     </Card>
                   </Link>
                 ))}
+
+              {pagination.page < pagination.totalPages && (
+                <div className="py-4 text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => getTickets(pagination.page + 1)}
+                    disabled={loading}
+                    className="w-full h-11"
+                  >
+                    {loading ? "กำลังโหลด..." : "โหลดเพิ่มเติม"}
+                  </Button>
+                </div>
+              )}
             </TabsContent>
           ))}
         </Tabs>
+        <div className="h-20"></div>
       </div>
     </BookingLayout>
   );

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Users, CalendarIcon, MapPin, Tag, Ticket, UserCircle } from "lucide-react";
+import { Users, CalendarIcon, MapPin, Tag, Ticket, UserCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -66,6 +66,7 @@ const Home = () => {
       }
       try {
         const res = await supabase.from("routes").select("*")
+        console.log("routes ", res.data)
         setRoutes(res.data)
       } catch (error) {
         throw error
@@ -73,7 +74,7 @@ const Home = () => {
 
       try {
         supabase.from("routes_group").select("*").then(res => {
-          console.log(res.data)
+          console.log("routes_group ", res.data)
           setRoutesGroup(res.data)
         })
       } catch (error) {
@@ -82,7 +83,7 @@ const Home = () => {
 
       try {
         supabase.from("provinces").select("*").then(res => {
-          console.log(res.data)
+          console.log("provinces ", res.data)
           setProvinces(res.data)
         })
       } catch (error) {
@@ -105,23 +106,35 @@ const Home = () => {
     conf()
   }, [store])
 
+
+
   const filteredRoutes = useMemo(() => {
-    return routes.filter((r) => store?.routeGroupid ? r.region_id == store?.routeGroupid : true)
-  }, [routes, store?.routeGroupid])
+    if (!store?.routeGroupid) return routes;
+    return routes.filter((r) => r.region_id === store.routeGroupid);
+  }, [routes, store?.routeGroupid]);
 
-  const filteredProvinceByOrigin = useMemo(() => {
-    return store?.routeGroupid ?
-      provinces.filter((r) => store?.routeGroupid ? r.region_id == store?.routeGroupid : true).
-        filter((r) => store?.originProvinceId ? r.id == store?.originProvinceId : true)
-      : provinces
-  }, [provinces, store?.originProvinceId])
-
-
+  const filteredProvinces = useMemo(() => {
+    if (!store?.routeGroupid) return provinces;
+    const availableIds = new Set();
+    filteredRoutes.forEach(r => {
+      availableIds.add(r.origin_id);
+      availableIds.add(r.destination_id);
+    });
+    return provinces.filter(p => availableIds.has(p.id));
+  }, [provinces, filteredRoutes, store?.routeGroupid]);
 
   const filteredProvinceByDestination = useMemo(() => {
-    const filtered = provinces.filter(r => store.originProvinceId ? r.id !== store.originProvinceId?.id : true)
-    return filtered
-  }, [provinces, store?.originProvinceId])
+    if (!store.originProvinceId) return filteredProvinces;
+
+    // Find destinations reachable from the selected origin in the filtered routes
+    const reachableDestIds = new Set(
+      filteredRoutes
+        .filter(r => r.origin_id === store.originProvinceId.id)
+        .map(r => r.destination_id)
+    );
+
+    return filteredProvinces.filter(p => reachableDestIds.has(p.id));
+  }, [filteredProvinces, filteredRoutes, store?.originProvinceId]);
 
 
   const selectRoute = (route: any) => {
@@ -141,8 +154,12 @@ const Home = () => {
     store.setDestinationProvince(pEnd.id)
     setDestination(pEnd.name)
   }
-  const chooseGroup = (r) => {
-    store?.setRouteGroupId(r.g_route_id)
+  const chooseGroup = (r: any) => {
+    if (store?.routeGroupid === r.g_route_id) {
+      store?.setRouteGroupId(null)
+    } else {
+      store?.setRouteGroupId(r.g_route_id)
+    }
     store.setRoute(null)
     store.setOriginProvince(null)
     store.setDestinationProvince(null)
@@ -201,7 +218,7 @@ const Home = () => {
                     />
                     {openOrigin && <div className="absolute inset-0 bg-white  mt-14" style={{ zIndex: "9999" }} onClick={() => setOpenOrigin(false)}>
                       <ul className="max-h-60 overflow-y-auto  bg-white border border-input rounded-lg p-2" onClick={(e) => e.stopPropagation()}>
-                        {provinces.map((p) => (
+                        {filteredProvinces.map((p) => (
                           <li
                             key={p.id}
                             className="cursor-pointer hover:bg-accent rounded-sm px-2 py-1"
@@ -336,13 +353,21 @@ const Home = () => {
               {
                 promotions && promotions.map((promo) =>
                   <SwiperSlide className="text-left" key={promo.id}>
-                    <div className={`w-full h-full rounded-xl overflow-hidden relative  bg-gradient-to-r ${promo.bg_color}  `}
-                      style={{ width: "100%", height: "10rem" }}
+                    <div
+                      onClick={() => navigate(`/promotions/${promo.id}`)}
+                      className={cn(
+                        "w-full rounded-xl overflow-hidden relative cursor-pointer transition-all hover:scale-[1.02] shadow-sm",
+                        promo.bg_color || "from-primary to-primary/80"
+                      )}
+                      style={{ height: "10rem" }}
                     >
-                      <div className={`absolute inset-0 flex items-center justify-center text-left p-3`}
-                        style={{ flexDirection: "column" }}>
-                        <span className="text-black text-xl font-bold">{promo.title}</span>
-                        <small>{promo?.description}</small>
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                        <span className="text-black text-xl font-bold mb-1">{promo.title}</span>
+                        <p className="text-black/80 text-xs line-clamp-2">{promo?.description}</p>
+                        <div className="mt-3 bg-primary/90 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider text-white">
+                          {promo.code}
+                        </div>
                       </div>
                     </div>
                   </SwiperSlide>

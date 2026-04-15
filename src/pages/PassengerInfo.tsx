@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 // import PageTransition from "@/components/PageTransition";
 import { useNavigate } from "react-router-dom";
 import BookingLayout from "@/components/BookingLayout";
@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mockPromotions } from "@/data/mockData";
-import { Check, CheckIcon, Tag } from "lucide-react";
+import { Check, CheckIcon, Tag, Ticket as TicketIcon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { validatePromo } from "@/services/api";
 import { toast } from "sonner";
+import { supabase } from "@/http/supabase";
+import moment from "moment";
 
 const passengerTypes = [
   { value: "male", label: "ชาย" },
@@ -25,24 +27,51 @@ const PassengerInfoPage = () => {
   const navigate = useNavigate();
   const store = useBookingStore();
 
-  const [passengers, setPassengers] = useState<PassengerInfo[]>(
-    store.selectedSeats.map((seat) => ({
-      seatId: seat.id,
-      seatNumber: seat.number,
-      fullName: "",
-      thaiId: "",
-      phone: "",
-      passengerType: "male",
-    }))
-  );
+  const [passengers, setPassengers] = useState<PassengerInfo[]>(() => {
+    // Try to restore from store if mapping matches current seats
+    return store.selectedSeats.map((seat) => {
+      const existing = store.passengers.find(p => p.seatId === seat.id);
+      return existing || {
+        seatId: seat.id,
+        seatNumber: seat.number,
+        fullName: "",
+        thaiId: "",
+        phone: "",
+        passengerType: "male",
+      };
+    });
+  });
 
   const [promoInput, setPromoInput] = useState(store.promoCode);
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoError, setPromoError] = useState("");
   const [applyAllPhone, setApplyAllPhone] = useState(false);
+  const [promotions, setPromotions] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      supabase.from("promotions").select("*")
+        .eq("is_active", true)
+        .gte("valid_to", moment().format("YYYY-MM-DDTHH:mm:ssZ"))
+        .then(res => {
+          console.log("promotions ", res.data)
+          if (res.data) setPromotions(res.data)
+        })
+    } catch (err) {
+      console.error("fetch promotions error", err)
+    }
+  }, []);
 
   const updatePassenger = (index: number, field: keyof PassengerInfo, value: string) => {
-    setPassengers((prev) => prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
+    setPassengers((prev) => {
+      const newPassengers = prev.map((p, i) => (i === index ? { ...p, [field]: value } : p));
+      
+      // If updating first passenger's phone and "apply to all" is true, sync everyone
+      if (index === 0 && field === "phone" && applyAllPhone) {
+        return newPassengers.map(p => ({ ...p, phone: value }));
+      }
+      return newPassengers;
+    });
   };
 
   const updatePhoneForAll = (phone: string) => {
@@ -73,21 +102,7 @@ const PassengerInfoPage = () => {
         : promo.discountAmount;
       store.setDiscount(discount);
     }
-    // const promo = mockPromotions.find((p) => p.promoCode === promoInput.toUpperCase());
-    // if (!promo) {
-    //   setPromoError("ไม่พบรหัสโปรโมชั่น");
-    //   setPromoApplied(false);
-    //   return;
-    // }
-    // setPromoError("");
-    // setPromoApplied(true);
-    // store.setPromoCode(promo.promoCode);
-    // const tripPrice = store.selectedTrip?.price ?? 0;
-    // const total = tripPrice * store.selectedSeats.length;
-    // const discount = promo.discountPercent > 0
-    //   ? Math.round(total * promo.discountPercent / 100)
-    //   : promo.discountAmount;
-    // store.setDiscount(discount);
+
   };
 
   const allValid = passengers.every(
@@ -131,19 +146,22 @@ const PassengerInfoPage = () => {
               {p.thaiId && !validateThaiId(p.thaiId) && (
                 <p className="text-xs text-destructive">กรุณากรอกเลขบัตรประชาชน 13 หลัก</p>
               )}
-              <Input
-                placeholder="เบอร์โทรศัพท์"
-                value={p.phone}
-                onChange={(e) => updatePassenger(i, "phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                className="h-12"
-                inputMode="tel"
-              />
+              {(i === 0 || !applyAllPhone) && (
+                <Input
+                  placeholder="เบอร์โทรศัพท์"
+                  value={p.phone}
+                  onChange={(e) => updatePassenger(i, "phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  className="h-12"
+                  inputMode="tel"
+                />
+              )}
               {i === 0 && (
-                <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center" }} className={!p.phone ? "opacity-50 cursor-not-allowed" : ""}>
                   <Checkbox
+                    id="c1"
+                    disabled={!p.phone}
                     checked={applyAllPhone}
                     onCheckedChange={(checked) => {
-                      console.log("Apply all phone:", checked, p.phone);
                       setApplyAllPhone(checked as boolean);
                       if (checked) {
                         updatePhoneForAll(p.phone);
@@ -151,7 +169,7 @@ const PassengerInfoPage = () => {
                     }}
                   >
                   </Checkbox>
-                  <label className="Label pl-2" htmlFor="c1">
+                  <label className="Label pl-2 cursor-pointer" htmlFor="c1">
                     ใช้หมายเลขนี้กับผู้โดยสารทั้งหมด
                   </label>
                 </div>
@@ -174,7 +192,48 @@ const PassengerInfoPage = () => {
         <Card>
           <CardContent className="p-4">
             <label className="text-sm font-medium flex items-center gap-1.5 mb-2">
-              <Tag className="h-3.5 w-3.5" /> รหัสโปรโมชั่น
+              <Tag className="h-3.5 w-3.5" /> รายการโปรโมชั่นที่ใช้ได้
+            </label>
+            
+            <div className="flex gap-3 overflow-x-auto pb-4 mb-4 -mx-1 px-1 scrollbar-hide">
+              {promotions.map((promo) => (
+                <div 
+                  key={promo.id}
+                  onClick={() => {
+                    setPromoInput(promo.code);
+                    setPromoError("");
+                    setPromoApplied(false);
+                  }}
+                  className={`flex-shrink-0 w-64 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                    promoInput === promo.code 
+                      ? "border-primary bg-primary/5 shadow-sm" 
+                      : "border-border hover:border-muted-foreground/30 bg-card"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="bg-primary/10 p-1.5 rounded-lg">
+                      <TicketIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    {promoInput === promo.code && (
+                      <Badge className="h-5 px-1.5 bg-primary text-white border-0">
+                        <Check className="h-3 w-3" />
+                      </Badge>
+                    )}
+                  </div>
+                  <h4 className="font-bold text-sm truncate">{promo.title}</h4>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{promo.subtitle}</p>
+                  <div className="mt-2 text-xs font-mono font-bold text-primary bg-primary/5 px-2 py-0.5 rounded inline-block">
+                    {promo.code}
+                  </div>
+                </div>
+              ))}
+              {promotions.length === 0 && (
+                <p className="text-xs text-muted-foreground py-2">ไม่มีโปรโมชั่นที่เลือกได้ในขณะนี้</p>
+              )}
+            </div>
+
+            <label className="text-sm font-medium flex items-center gap-1.5 mb-2">
+              หรือระบุรหัสโปรโมชั่น
             </label>
             <div className="flex gap-2">
               <Input

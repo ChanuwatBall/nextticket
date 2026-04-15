@@ -38,6 +38,7 @@ interface BookingState {
   booking_qrcode: string;
   paymentStatus: 'pending' | 'success' | 'failed' | null;
   newBookingId: any;
+  bookingReference: any;
   // Actions
   setRouteGroupId: (routeGroupid: any) => void;
   setRoute: (routeId: any) => void;
@@ -57,6 +58,7 @@ interface BookingState {
   setPaymentStatus: (status: 'pending' | 'success' | 'failed' | null) => void;
   setBookingQrcode: (booking_qrcode: string) => void;
   setNewBookingId: (newBookingId: any) => void;
+  setBookingReference: (bookingReference: any) => void;
   reset: () => void;
 }
 
@@ -79,6 +81,7 @@ const initialState = {
   booking_qrcode: '',
   paymentStatus: null as 'pending' | 'success' | 'failed' | null,
   newBookingId: '',
+  bookingReference: '',
 };
 
 export const useBookingStore = create<BookingState>((set) => ({
@@ -101,5 +104,6 @@ export const useBookingStore = create<BookingState>((set) => ({
   setPaymentStatus: (paymentStatus) => set({ paymentStatus }),
   setBookingQrcode: (booking_qrcode) => set({ booking_qrcode }),
   setNewBookingId: (newBookingId) => set({ newBookingId }),
+  setBookingReference: (bookingReference) => set({ bookingReference }),
   reset: () => set(initialState),
 }));

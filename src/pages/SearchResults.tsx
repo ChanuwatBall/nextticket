@@ -55,8 +55,11 @@ const SearchResults = () => {
           .gte("available_seats", store.passengerCount)
 
         console.log("trips ", trips.data)
-        const filterTrips = trips.data.filter(r => moment(r.date + " " + r.departure_time).format() > moment().format())
-        console.log("filterTrips ", filterTrips)
+        const filterTrips = trips.data
+          .filter(r => moment(r.date + " " + r.departure_time).format() > moment().format())
+          .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
+        
+        console.log("filterTrips sorted ", filterTrips)
         setTrips(filterTrips)
 
         const busStopsRes = await supabase.from("bus_stops").select("*, route_id(*)");
@@ -199,7 +202,7 @@ const SearchResults = () => {
                   <SelectValue placeholder="เลือกจุดขึ้นรถ" />
                 </SelectTrigger>
                 <SelectContent>
-                  {originBoardingPoints.map(p => (
+                  {originBoardingPoints.filter(p => p.id !== localDropOffPoint?.id).map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.type === "stop" ? "จุดจอด" : "จุดขึ้นรถ"} {p.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -216,7 +219,7 @@ const SearchResults = () => {
                   <SelectValue placeholder="เลือกจุดลงรถ" />
                 </SelectTrigger>
                 <SelectContent>
-                  {destBoardingPoints.map(p => (
+                  {destBoardingPoints.filter(p => p.id !== localBoardingPoint?.id).map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.type === "stop" ? "จุดจอด" : "จุดลงรถ"} {p.name}</SelectItem>
                   ))}
                 </SelectContent>

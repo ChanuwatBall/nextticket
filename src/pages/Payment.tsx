@@ -12,8 +12,8 @@ import { QrCode, Wallet, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const eWalletOptions = [
-  { value: "alipay", label: "AliPay", sublabel: "QR Code", icon: "🅰️" },
-  { value: "wechat_pay_mpm", label: "WeChatPay", sublabel: "QR Code", icon: "💬" },
+  // { value: "alipay", label: "AliPay", sublabel: "QR Code", icon: "🅰️" },
+  { value: "wechat_pay_mpm", label: "WeChatPay", sublabel: "QR Code", icon: "/assets/icon/wechat.svg" },
 ];
 
 const PaymentPage = () => {
@@ -208,7 +208,9 @@ const PaymentPage = () => {
                                 : "border-border hover:bg-accent/30"
                                 }`}
                             >
-                              <span className="text-xl">{opt.icon}</span>
+                              <span className="text-xl">
+                                <img src={opt.icon} alt="" style={{ width: "30px", height: "30px" }} />
+                              </span>
                               <div>
                                 <div className="font-medium text-sm">{opt.label}</div>
                                 <div className="text-xs text-muted-foreground">{opt.sublabel}</div>

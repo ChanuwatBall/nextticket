@@ -76,9 +76,10 @@ export const createBooking = async (body: NewBooking) => {
 }
 
 
-export const bookingList = () => {
+export const bookingList = (page = 1, limit = 10) => {
   const user = JSON.parse(localStorage.getItem("user") || "{}")
   return api.get(`/api/bookings`, {
+    params: { page, limit },
     headers: {
       "Authorization": `Bearer ${user.token}`
     }
@@ -136,7 +137,7 @@ export const getTripDetail = async (tripid: string) => {
 
 
 export const chargeWechatPayment = async (amount: any) => {
-  return await api.post("/api/payment/wechat-pay", {
+  return await api.post("/api/payment/wechat-pay?amount=" + amount, {
     amount: amount
   })
     .then((res) => {
@@ -148,6 +149,21 @@ export const chargeWechatPayment = async (amount: any) => {
       return err.response.data
     })
 }
+
+export const chargeAlipayPayment = async (amount: any) => {
+  return await api.post("/api/payment/alipay-qr?amount=" + amount, {
+    amount: amount
+  })
+    .then((res) => {
+      console.log("chargeAlipayPayment res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("chargeAliPayment err ", err)
+      return err.response.data
+    })
+}
+
 export const chargeQrPayment = async (amount: any) => {
   return await api.post("/api/payment/qr", {
     amount: amount
@@ -233,8 +249,36 @@ export const getWalletPoint = async () => {
     })
 }
 
-export const cancelCharge = (chargeId: string) =>
-  api.post(`/api/payment/cancel/${chargeId}`)
+// curl '/api/bookings/{id}/cancel' \
+//   --request PATCH \
+//   --header 'Authorization: Bearer YOUR_SECRET_TOKEN'
+
+export const cancelBooking = (bookingId: string) => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return api.patch(`/api/bookings/${bookingId}/cancel`, {}, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("cancelBooking res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("cancelCharge err ", err)
+      return err.response.data
+    })
+}
+
+export const cancelCharge = (chargeId: string) => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return api.post(`/api/payment/cancel/${chargeId}`, {}, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
     .then((res) => {
       console.log("cancelCharge res ", res)
       return res.data
@@ -243,6 +287,7 @@ export const cancelCharge = (chargeId: string) =>
       console.log("cancelCharge err ", err)
       return err.response.data
     })
+}
 
 export const getPromotions = async () => {
   return await api.get(`/api/promotions`)

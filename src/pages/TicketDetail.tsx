@@ -4,120 +4,42 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { QrCode, MapPin, Clock, Bus, User, CreditCard, ArrowLeft, Download, Mail, Phone, IdCard } from "lucide-react";
+import { QrCode, MapPin, Clock, Bus, User, CreditCard, ArrowLeft, Download, Mail, Phone, IdCard, AlertCircle, Check as CheckIcon } from "lucide-react";
+import { useBookingStore } from "@/store/bookingStore";
 import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
-import { bookingDetail } from "@/services/api";
+import { bookingDetail, cancelBooking, cancelCharge } from "@/services/api";
 import QRCode from "qrcode";
 import moment from "moment";
 import "../css/TicketDetail.css"
 
-const mockTicketDetails: Record<string, {
-  id: string;
-  origin: string;
-  destination: string;
-  date: string;
-  departureTime: string;
-  arrivalTime: string;
-  seats: string[];
-  status: "upcoming" | "completed" | "cancelled";
-  total: number;
-  boardingPoint: string;
-  dropOffPoint: string;
-  busType: string;
-  tripType: string;
-  busPlate: string;
-  routeName: string;
-  paymentMethod: string;
-  promoCode: string;
-  discount: number;
-  pricePerSeat: number;
-  bookingDate: string;
-  passengers: { fullName: string; thaiId: string; phone: string; seatNumber: string; passengerType: string }[];
-}> = {
-  NEX001: {
-    id: "NEX001",
-    origin: "กรุงเทพฯ",
-    destination: "เชียงใหม่",
-    date: "2026-03-05",
-    departureTime: "20:00",
-    arrivalTime: "06:00",
-    seats: ["12", "13"],
-    status: "upcoming",
-    total: 1300,
-    boardingPoint: "หมอชิต 2",
-    dropOffPoint: "อาเขต",
-    busType: "VIP 32 ที่นั่ง",
-    tripType: "ด่วนพิเศษ",
-    busPlate: "10-1234 กรุงเทพฯ",
-    routeName: "สายเหนือ",
-    paymentMethod: "QR PromptPay",
-    promoCode: "",
-    discount: 0,
-    pricePerSeat: 650,
-    bookingDate: "2026-03-01 14:32",
-    passengers: [
-      { fullName: "สมชาย ใจดี", thaiId: "1-1001-XXXXX-XX-1", phone: "081-234-5678", seatNumber: "12", passengerType: "male" },
-      { fullName: "สมหญิง ใจดี", thaiId: "1-1001-XXXXX-XX-2", phone: "089-876-5432", seatNumber: "13", passengerType: "female" },
-    ],
-  },
-  NEX002: {
-    id: "NEX002",
-    origin: "กรุงเทพฯ",
-    destination: "หาดใหญ่",
-    date: "2026-02-20",
-    departureTime: "18:00",
-    arrivalTime: "07:00",
-    seats: ["5"],
-    status: "completed",
-    total: 850,
-    boardingPoint: "สายใต้ใหม่",
-    dropOffPoint: "สถานีขนส่งหาดใหญ่",
-    busType: "VIP 24 ที่นั่ง",
-    tripType: "ด่วนพิเศษ",
-    busPlate: "30-5678 กรุงเทพฯ",
-    routeName: "สายใต้",
-    paymentMethod: "บัตรเครดิต",
-    promoCode: "SOUTH50",
-    discount: 50,
-    pricePerSeat: 900,
-    bookingDate: "2026-02-18 09:15",
-    passengers: [
-      { fullName: "วิชัย สุขสม", thaiId: "1-2003-XXXXX-XX-5", phone: "062-111-2222", seatNumber: "5", passengerType: "male" },
-    ],
-  },
-  NEX003: {
-    id: "NEX003",
-    origin: "กรุงเทพฯ",
-    destination: "อุดรธานี",
-    date: "2026-02-10",
-    departureTime: "19:00",
-    arrivalTime: "05:00",
-    seats: ["22"],
-    status: "cancelled",
-    total: 480,
-    boardingPoint: "หมอชิต 2",
-    dropOffPoint: "สถานีขนส่งอุดร",
-    busType: "ป.1 (ป.อ.)",
-    tripType: "ปรับอากาศ",
-    busPlate: "20-9012 กรุงเทพฯ",
-    routeName: "สายอีสาน",
-    paymentMethod: "E-Wallet",
-    promoCode: "",
-    discount: 0,
-    pricePerSeat: 480,
-    bookingDate: "2026-02-08 20:45",
-    passengers: [
-      { fullName: "พระมหาสมบูรณ์", thaiId: "3-4005-XXXXX-XX-9", phone: "095-333-4444", seatNumber: "22", passengerType: "monk" },
-    ],
-  },
+const statusConfig: Record<string, { label: string, variant: "default" | "success" | "destructive" | "outline" | "secondary" }> = {
+  pending: { label: "รอชำระเงิน", variant: "secondary" },
+  upcoming: { label: "กำลังจะถึง", variant: "default" },
+  confirmed: { label: "เสร็จสิ้น", variant: "success" },
+  cancelled: { label: "ยกเลิก", variant: "destructive" },
+  expired: { label: "หมดเวลาชำระเงิน", variant: "outline" },
 };
 
-const statusConfig = {
-  pending: { label: "กำลังจะถึง", variant: "default" as const },
-  confirmed: { label: "เสร็จสิ้น", variant: "default" as const },
-  cancelled: { label: "ยกเลิก", variant: "destructive" as const },
-  expired: { label: "หมดเวลาชำระเงิน", variant: "secondary" as const },
+const getTicketStatus = (ticket: any) => {
+  if (ticket.status === "cancelled") return statusConfig.cancelled;
+  if (ticket.status === "expired") return statusConfig.expired;
+
+  if (ticket.paymentStatus === "pending") {
+    if (moment().isBefore(moment(ticket.expiresAt))) {
+      return statusConfig.pending;
+    } else {
+      return statusConfig.expired;
+    }
+  }
+
+  // For paid tickets, check trip time
+  const tripTime = moment(`${ticket.date} ${ticket.departureTime}`, "YYYY-MM-DD HH:mm");
+  if (moment().isBefore(tripTime)) {
+    return statusConfig.upcoming;
+  } else {
+    return statusConfig.confirmed;
+  }
 };
 
 const passengerTypeLabels: Record<string, string> = {
@@ -130,24 +52,60 @@ const passengerTypeLabels: Record<string, string> = {
 const TicketDetail = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate()
+  const store = useBookingStore();
   const [ticket, setTicket] = useState(null)
   const [qr, setQr] = useState("")
+  const [route, setRoute] = useState<any>(null)
   // ticketId ? mockTicketDetails[ticketId] : null;
-  useEffect(() => {
-    const fetchTicket = async () => {
-      const userstr = localStorage.getItem("user")
-      const user = JSON.parse(userstr)
-      const detail = await bookingDetail({ id: ticketId, token: user.token })
-      const qrBookingPayload = JSON.stringify({
-        booking_id: detail.bookingReference
-      });
-      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + detail.bookingReference);
-      setQr(qrBookingCode)
-      console.log("booking id detail", detail)
+  const fetchTicket = async (fetchRoute = false) => {
+    if (!ticketId) return;
+    try {
+      const userstr = localStorage.getItem("user");
+      const user = JSON.parse(userstr || "{}");
+      if (!user.token) return;
+
+      const detail = await bookingDetail({ id: ticketId, token: user.token });
+      console.log("booking id detail", detail);
       setTicket(detail);
-    };
-    fetchTicket();
+
+      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + detail.bookingReference);
+      setQr(qrBookingCode);
+
+      if (fetchRoute) {
+        const { data: routesData, error } = await supabase.from("routes")
+          .select("*")
+          .eq("origin", detail.origin)
+          .eq("destination", detail.destination)
+          .single();
+
+        if (error) {
+          console.error("Error fetching route:", error);
+        } else {
+          setRoute(routesData);
+        }
+      }
+    } catch (err) {
+      console.error("Error in fetchTicket:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTicket(true);
   }, [ticketId]);
+
+  useEffect(() => {
+    if (!ticket) return;
+
+    const isPending = ticket.paymentStatus === "pending" && moment().isBefore(moment(ticket.expiresAt));
+
+    if (isPending) {
+      const interval = setInterval(() => {
+        console.log("Polling booking detail...");
+        fetchTicket(false);
+      }, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [ticket?.paymentStatus, ticket?.expiresAt, ticketId]);
 
   if (!ticket) {
     return (
@@ -160,17 +118,119 @@ const TicketDetail = () => {
     );
   }
 
-  const status = statusConfig[ticket.status];
+  const statusInfo = getTicketStatus(ticket);
+
+  const handleContinuePayment = async () => {
+    const { data: trip, error: tripError } = await supabase.from("trips")
+      .select("* , bus_type_id(*)")
+      .eq("route_id", route.id)
+      .eq("departure_time", ticket.departureTime)
+      .eq("arrival_time", ticket.arrivalTime)
+      .eq("date", ticket.date)
+      .single()
+    console.log("trip", trip)
+    store.setSelectedTrip(trip)
+    // Map existing data to store
+    store.setPaymentMethod(ticket.paymentMethod || "promptpay");
+    store.setTravelDate(ticket.date);
+    store.setPromoCode(ticket.promoCode || "");
+    store.setDiscount(ticket.discount || 0);
+    store.setBookingId(ticket.id);
+    store.setNewBookingId(ticket.bookingReference);
+    store.setRoute(`${ticket.origin} - ${ticket.destination}`);
+    //
+    store.setSelectedTrip(trip)
+    store.setBookingReference(ticket.bookingReference)
+
+    // Construct province objects for the store
+    if (ticket.originProvinceId) {
+      store.setOriginProvince({ id: ticket.originProvinceId, name: ticket.origin, name_en: ticket.routeName?.split(" - ")[0] || "" });
+    }
+    if (ticket.destinationProvinceId) {
+      store.setDestinationProvince({ id: ticket.destinationProvinceId, name: ticket.destination, name_en: ticket.routeName?.split(" - ")[1] || "" });
+    }
+
+    store.setBoardingPoint({ name: ticket.boardingPoint, id: ticket.boardingPointId });
+    store.setDropOffPoint({ name: ticket.dropOffPoint, id: ticket.dropOffPointId });
+    store.setPassengerCount(ticket.passengers.length);
+
+    // Map passengers with all required fields
+    store.setPassengers(ticket.passengers.map((p: any) => ({
+      fullName: p.fullName,
+      thaiId: p.thaiId,
+      phone: p.phone,
+      seatNumber: p.seatNumber,
+      passengerType: p.passengerType,
+      seatId: p.seatId || p.seatNumber,
+    })));
+
+    // Map seats (mocking Seat objects for the store)
+    store.setSelectedSeats(ticket.seats.map((s: string) => ({
+      id: s,
+      number: s,
+      status: 'booked',
+    } as any)));
+
+    // Set trip details
+    // store.setSelectedTrip({
+    //   id: trip.id,
+    //   price: ticket.pricePerSeat,
+    //   route_id: ticket.routeName,
+    //   origin_province_id: ticket.originProvinceId,
+    //   destination_province_id: ticket.destinationProvinceId,
+    //   departure_time: ticket.departureTime,
+    //   arrival_time: ticket.arrivalTime,
+    //   date: ticket.date,
+    // } as any);
+    await cancelBooking(ticket.id)
+    await cancelCharge(ticket.omiseChargeId)
+
+    // Navigate to Payment page with full context
+    navigate("/payment", {
+      state: {
+        total: ticket.total,
+        sourceType: ticket.paymentMethod || "promptpay",
+        bookingBody: {
+          tripId: trip.id,
+          travelDate: ticket.date,
+          originProvinceId: ticket.originProvinceId,
+          destinationProvinceId: ticket.destinationProvinceId,
+          boardingPointId: ticket.boardingPointId,
+          dropOffPointId: ticket.dropOffPointId,
+        }
+      }
+    });
+  };
 
   return (
     <BookingLayout showSteps={false} title="รายละเอียดตั๋ว" navto={() => navigate(-1)} >
       <div className="px-4 space-y-4 pb-6">
+        {/* Continue Payment Action */}
+        {ticket.paymentStatus === "pending" && ticket.status === "pending" && moment().isBefore(moment(ticket.expiresAt)) && (
+          <Card className="bg-amber-50 border-amber-200 overflow-hidden">
+            <CardContent className="p-4 flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 p-2 rounded-full">
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-amber-900">รอการชำระเงิน</p>
+                  <p className="text-xs text-amber-700">กรุณาชำระเงินเพื่อยืนยันการจองตั๋วของคุณ</p>
+                </div>
+              </div>
+              <Button onClick={handleContinuePayment} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold h-11">
+                ดำเนินการชำระเงินต่อ
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Route Header */}
         <Card className={`overflow-hidden ${ticket.status}`}>
           <div className={`${ticket.status === "pending" || ticket.status === "confirmed" ? "bg-primary" : "bg-gray-400"} text-primary-foreground px-4 py-4`}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs opacity-80">#{ticket.id.substring(0, 8).toUpperCase()}</span>
-              <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
+              <Badge variant={statusInfo.variant} className="text-xs">{statusInfo.label}</Badge>
             </div>
             <div className="flex items-center gap-2 text-lg font-bold">
               <MapPin className="h-5 w-5 shrink-0" />
@@ -180,7 +240,7 @@ const TicketDetail = () => {
           </div>
 
           {/* QR for upcoming */}
-          {ticket.status === "pending" || ticket.status === "confirmed" && (
+          {ticket.paymentStatus === "paid" ? (
             <div className="flex flex-col items-center py-5 bg-card">
               <div className="border-2 border-border rounded-xl p-1 mb-1">
                 {/* <QrCode className="h-28 w-28 text-foreground" /> */}
@@ -188,7 +248,7 @@ const TicketDetail = () => {
               </div>
               <p className="text-xs text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
             </div>
-          )}
+          ) : <></>}
         </Card>
 
         {/* Trip Info */}
@@ -303,25 +363,33 @@ const TicketDetail = () => {
         </Card>
 
         {/* Actions */}
-        {ticket.status === "upcoming" && (
-          <div className="space-y-2">
-            <Button variant="outline" className="w-full h-11">
-              <Download className="mr-2 h-4 w-4" />
-              ดาวน์โหลด PDF
-            </Button>
-            <Button variant="outline" className="w-full h-11">
-              <Mail className="mr-2 h-4 w-4" />
-              ส่งไปยังอีเมล
+        {statusInfo.label === "กำลังจะถึง" && (
+          <div className="space-y-4 ">
+            {/* <div className="space-y-2">
+              <Button variant="outline" className="w-full h-11">
+                <Download className="mr-2 h-4 w-4" />
+                ดาวน์โหลด PDF
+              </Button>
+              <Button variant="outline" className="w-full h-11">
+                <Mail className="mr-2 h-4 w-4" />
+                ส่งไปยังอีเมล
+              </Button>
+            </div> */}
+
+            <Button className="w-full h-14 bg-primary hover:bg-primary-700 text-white font-bold text-lg shadow-lg">
+              <CheckIcon className="mr-2 h-6 w-6" />
+              เช็คอิน
             </Button>
           </div>
         )}
 
-        <Link to="/my-tickets">
-          <Button variant="ghost" className="w-full h-11">
+        <Link to="/my-tickets" >
+          <Button variant="outline" className="w-full h-11 bg-grey-400 mt-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             กลับหน้าตั๋วของฉัน
           </Button>
         </Link>
+        <div className="h-10"></div>
       </div>
     </BookingLayout>
   );

@@ -66,15 +66,19 @@ const App = () => {
           //   })
           // console.log("user ", user)
 
-          const res = await supabase.from("users").update({
-            full_name: p.displayName,
-            avatar_url: p.pictureUrl
-          })
-            .eq("id", reslogin.user.id)
-            .eq("is_active", true)
-            .single()
+          // try {
+          //   const res = await supabase.from("users").update({
+          //     full_name: p.displayName,
+          //     avatar_url: p.pictureUrl
+          //   })
+          //     .eq("id", reslogin.user.id)
+          //     .eq("is_active", true)
+          //     .single()
 
-          console.log("res ", res)
+          //   console.log("res ", res)
+          // } catch (error) {
+
+          // }
         } else {
           console.log("No user profile found in localStorage");
           liff.getProfile().then(async (profile) => {
