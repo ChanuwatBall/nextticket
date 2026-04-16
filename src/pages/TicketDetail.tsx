@@ -229,7 +229,7 @@ const TicketDetail = () => {
         <Card className={`overflow-hidden ${ticket.status}`}>
           <div className={`${ticket.status === "pending" || ticket.status === "confirmed" ? "bg-primary" : "bg-gray-400"} text-primary-foreground px-4 py-4`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs opacity-80">#{ticket.id.substring(0, 8).toUpperCase()}</span>
+              <span className="text-xs opacity-80">#{ticket.bookingReference}</span>
               <Badge variant={statusInfo.variant} className="text-xs">{statusInfo.label}</Badge>
             </div>
             <div className="flex items-center gap-2 text-lg font-bold">

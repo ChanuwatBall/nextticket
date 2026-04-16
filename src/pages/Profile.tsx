@@ -43,6 +43,20 @@ const Profile = () => {
         } else {
           setUser(JSON.parse(user))
         }
+      } else {
+        const isLoggedIn = liff.isLoggedIn();
+        if (!isLoggedIn) {
+          liff.login();
+        }
+        liff.getProfile().then(async (profile) => { 
+          localStorage.setItem("userProfile", JSON.stringify(profile));
+          const ltoken = await liff.getAccessToken()
+          const reslogin = await loginWithLine({ lineAccessToken: ltoken })
+          console.log("reslogin ", reslogin)
+
+          localStorage.setItem("user", JSON.stringify(reslogin))
+        });
+
       }
     }
     conf()

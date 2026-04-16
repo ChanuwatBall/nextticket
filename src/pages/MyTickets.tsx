@@ -48,15 +48,18 @@ const mockTickets = [
 ];
 
 type Ticket = {
-  "id": "932a4e43-7b01-4ff2-abdc-4cf1e26f60a5",
-  "origin": "กรุงเทพฯ",
-  "destination": "ขอนแก่น",
-  "date": "2026-04-05",
-  "departureTime": "21:30",
-  "arrivalTime": "03:30",
-  "seats": [],
-  "status": "completed",
-  "total": 480
+    "id":  string
+    "bookingReference":string
+    "origin":string
+    "destination": string
+    "date": string
+    "departureTime": string
+    "arrivalTime": string
+    "seats": string[] 
+    "status":string
+    "paymentStatus": string
+    "expiresAt": string
+    "total": number
 }
 
 const statusConfig: Record<string, { label: string, variant: "default" | "success" | "destructive" | "outline" | "secondary" }> = {
@@ -153,7 +156,7 @@ const MyTicketsPage = () => {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="text-xs text-muted-foreground">#{(ticket.id).substring(0, 8).toUpperCase()}</p>
+                            <p className="text-xs text-muted-foreground">#{ ticket.bookingReference  }</p>
                             <div className="flex items-center gap-1.5 mt-1">
                               <MapPin className="h-3.5 w-3.5 text-primary" />
                               <span className="font-bold">{ticket.origin} → {ticket.destination}</span>
