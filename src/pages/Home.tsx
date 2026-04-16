@@ -17,7 +17,7 @@ import { mockPromotions } from "@/data/mockData";
 // import { getRoutes, getProvinces, getPromotions, Province } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/http/supabase";
-import { login, loginWithLine } from "@/services/api";
+import { login, loginWithLine, getUserMe } from "@/services/api";
 import liff from "@line/liff";
 import moment from "moment";
 
@@ -35,6 +35,7 @@ const Home = () => {
   const [routes, setRoutes] = useState<any[]>([]);
   const [openRoute, setOpenRoute] = useState(false);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [userMe, setUserMe] = useState<any>(null);
   // API Queries
 
   // const { data: promotions = [], isLoading: isLoadingPromotions } = useQuery({
@@ -58,6 +59,23 @@ const Home = () => {
   };
 
   useEffect(() => {
+
+    const fetchUser = async () => {
+      try {
+        const userme = await getUserMe();
+        if (userme?.error === 'Unauthorized') {
+          liff.login();
+          return;
+        }
+        if (userme && userme.id) {
+          setUserMe(userme);
+          const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
+          localStorage.setItem("user", JSON.stringify({ ...existingUser, user: userme }));
+        }
+      } catch (e) {
+        console.error("Home user check failed", e);
+      }
+    };
 
     const conf = async () => {
       try {
@@ -103,7 +121,8 @@ const Home = () => {
       }
 
     }
-    conf()
+    fetchUser();
+    conf();
   }, [store])
 
 
@@ -178,7 +197,11 @@ const Home = () => {
           <h1 className="text-xl font-bold" > Booking your best trip</h1>
         </div>
         <Link to="/profile">
-          <UserCircle className="h-7 w-7" />
+          {userMe?.avatarUrl ? (
+            <img src={userMe.avatarUrl} alt="avatar" className="h-8 w-8 rounded-full border-2 border-white/50 object-cover" />
+          ) : (
+            <UserCircle className="h-8 w-8" />
+          )}
         </Link>
       </header>
 

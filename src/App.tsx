@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import liff from "@line/liff";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Bus, Loader2 } from "lucide-react";
 import Home from "./pages/Home";
 import Ticket from "./pages/Ticket";
 import SearchResults from "./pages/SearchResults";
@@ -22,19 +23,21 @@ import Wallet from "./pages/Wallet";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import UpdateProfile from "./pages/UpdateProfile";
+import SearchBooking from "./pages/SearchBooking";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import PromotionDetail from "./pages/PromotionDetail";
-import { supabase } from "./http/supabase";
 import { loginWithLine } from "./services/api";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [isInitializing, setIsInitializing] = useState(true);
+
   useEffect(() => {
-    // Only initialize LIFF if we are on the production URL specified in VITE_URL
     if (!window.location.href.startsWith("https://") || window.location.href.startsWith("https://lovable.dev")) {
       console.log("Not on production URL, skipping LIFF init");
+      setIsInitializing(false);
       return;
     }
 
@@ -44,71 +47,52 @@ const App = () => {
       })
       .then(async () => {
         console.log("LIFF init succeeded");
-        const isLoggedIn = liff.isLoggedIn();
-        if (!isLoggedIn) {
+        if (!liff.isLoggedIn()) {
           liff.login();
+          return; // Redirecting, no need to set state
         }
 
-        const storedProfile = localStorage.getItem("userProfile");
-        if (storedProfile) {
-          console.log("Loaded user profile from localStorage:", JSON.parse(storedProfile));
-          const p = JSON.parse(storedProfile)
-          const ltoken = await liff.getAccessToken()
-          const reslogin = await loginWithLine({ lineAccessToken: ltoken })
-          console.log("reslogin ", reslogin)
+        try {
+          // Parallelize backend login and profile fetching for speed
+          const ltoken = liff.getAccessToken();
+          
+          const [reslogin, profile] = await Promise.all([
+            loginWithLine({ lineAccessToken: ltoken || "" }),
+            liff.getProfile()
+          ]);
 
-          localStorage.setItem("user", JSON.stringify(reslogin))
+          console.log("Login and profile fetched", { reslogin, profile });
 
-
-          console.log("p?.userId ", p?.userId)
-          // const user = await supabase.from("users").select("*")
-          //   .match({ 
-
-          //   })
-          // console.log("user ", user)
-
-          // try {
-          //   const res = await supabase.from("users").update({
-          //     full_name: p.displayName,
-          //     avatar_url: p.pictureUrl
-          //   })
-          //     .eq("id", reslogin.user.id)
-          //     .eq("is_active", true)
-          //     .single()
-
-          //   console.log("res ", res)
-          // } catch (error) {
-
-          // }
-        } else {
-          console.log("No user profile found in localStorage");
-          liff.getProfile().then(async (profile) => {
-            console.log("User profile:", profile);
+          // Only store if we got a valid backend session
+          if (reslogin && reslogin.token) {
+            localStorage.setItem("user", JSON.stringify(reslogin));
             localStorage.setItem("userProfile", JSON.stringify(profile));
-            const ltoken = await liff.getAccessToken()
-
-            const reslogin = await loginWithLine({ lineAccessToken: ltoken })
-            console.log("reslogin ", reslogin)
-            localStorage.setItem("user", JSON.stringify(reslogin))
-            // const res = await loginWithLine({ lineAccessToken: ltoken })
-            // console.log("res line signin : ", res)
-
-            // const { data, error } = await supabase.from("profiles").upsert({
-            //   line_id: profile.userId,
-            //   name: profile.displayName,
-            //   picture: profile.pictureUrl,
-            // });
-            // if (error) {
-            //   throw error
-            // }
-            // console.log("data ",data)
-          });
+          } else {
+            console.error("Backend login failed or returned invalid session", reslogin);
+          }
+        } catch (error) {
+          console.error("Error during authentication handshake:", error);
+        } finally {
+          setIsInitializing(false);
         }
       })
       .catch((e: Error) => {
         console.error("LIFF init failed", e);
+        setIsInitializing(false);
       });
   }, []);
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Bus className="h-12 w-12 text-primary animate-bounce mb-4" />
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <p className="text-lg font-medium">กำลังเตรียมความพร้อม...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -135,6 +119,7 @@ const App = () => {
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/search-booking" element={<SearchBooking />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />
@@ -143,6 +128,5 @@ const App = () => {
     </QueryClientProvider>
   );
 };
-
 
 export default App;

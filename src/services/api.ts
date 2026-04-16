@@ -24,6 +24,18 @@ export const login = async (body: any) => {
     })
 }
 
+export const register = async (body: any) => {
+  return await api.post("/api/auth/register", body)
+    .then((res) => {
+      console.log("register res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("register err ", err)
+      return err.response.data
+    })
+}
+
 export const loginWithLine = async (body: { lineAccessToken: string }) => {
 
   return await api.post("/api/auth/line", {
@@ -35,6 +47,24 @@ export const loginWithLine = async (body: { lineAccessToken: string }) => {
     })
     .catch((err) => {
       console.log("loginWithLine err ", err)
+      return err.response.data
+    })
+}
+
+export const logout = async () => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return await api.post("/api/auth/logout", {}, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("logout res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("logout err ", err)
       return err.response.data
     })
 }

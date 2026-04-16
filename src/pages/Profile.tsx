@@ -1,4 +1,4 @@
-import { User, Ticket, Star, Wallet, ChevronRight, Bus, LogIn, UserPlus, LogOut } from "lucide-react";
+import { User, Ticket, Star, Wallet, ChevronRight, Bus, LogIn, UserPlus, LogOut, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
 import liff from "@line/liff";
-import { getUserMe, loginWithLine } from "@/services/api";
+import { getUserMe, loginWithLine, logout as apiLogout } from "@/services/api";
 
 const menuItems = [
   { label: "ตั๋วของฉัน", icon: Ticket, to: "/my-tickets", key: "tickets" },
@@ -28,59 +28,48 @@ const Profile = () => {
   const [userMe, setUserMe] = useState<UserMe | null>(null)
 
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const conf = async () => {
+    const fetchUserData = async () => {
       try {
-        const userme = await getUserMe()
-        console.log("userme ", userme)
+        setLoading(true);
+        // Try getting fresh data from the server
+        const userme = await getUserMe();
+        console.log("userme res:", userme)
+
+        if (userme?.error === 'Unauthorized') {
+          liff.login();
+          return;
+        }
+
         if (userme && userme.id) {
-          setUserMe(userme)
+          setUserMe(userme);
+          // Sync back to localStorage for other components
+          const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
+          localStorage.setItem("user", JSON.stringify({ ...existingUser, user: userme }));
         } else {
-          // 1. ตรวจสอบข้อมูลใน LocalStorage ก่อนเพื่อการแสดงผลเบื้องต้นที่รวดเร็ว
+          // Fallback to localStorage if server fails
           const storedUser = localStorage.getItem("user");
           if (storedUser && storedUser !== "undefined") {
-            try {
-              const parsedUser = JSON.parse(storedUser);
-              if (parsedUser && parsedUser.user) {
-                setUserMe(parsedUser.user);
-              }
-            } catch (e) {
-              console.error("Failed to parse stored user:", e);
-              localStorage.removeItem("user");
+            const parsedToken = JSON.parse(storedUser);
+            if (parsedToken && parsedToken.user) {
+              setUserMe(parsedToken.user);
             }
           }
-        }
-
-        // 2. จัดการเรื่องสถานะ LINE LIFF
-        await liff.ready;
-
-        if (liff.isLoggedIn()) {
-          const ltoken = liff.getAccessToken();
-          if (ltoken) {
-            const reslogin = await loginWithLine({ lineAccessToken: ltoken });
-            if (reslogin && reslogin.data) {
-              console.log("Login success:", reslogin.data);
-              localStorage.setItem("user", JSON.stringify(reslogin.data));
-              setUserMe(reslogin.data.user);
-
-              // เก็บ Profile เพิ่มเติมถ้าจำเป็น
-              const profile = await liff.getProfile();
-              localStorage.setItem("userProfile", JSON.stringify(profile));
-            }
-          }
-        } else {
-          // หากต้องการให้บังคับ Login ทันทีเมื่อเข้าหน้า Profile สามารถ uncomment บรรทัดล่างได้
-          // liff.login();
         }
       } catch (error) {
-        console.error("Error during profile initialization:", error);
-        // สามารถจัดการ Error UI เพิ่มเติมตรงนี้ได้
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    conf();
+
+    fetchUserData();
   }, []);
 
   const logout = async () => {
+    await apiLogout()
     liff.logout()
     localStorage.removeItem("user")
     setUserMe(null)
@@ -146,6 +135,30 @@ const Profile = () => {
         {/* Menu */}
         <Card>
           <CardContent className="p-0 divide-y divide-border">
+            {/* {!userMe && (
+              <>
+                <Link
+                  to="/ticket"
+                  className="flex items-center justify-between px-4 py-4 hover:bg-muted/50 transition-colors text-primary"
+                >
+                  <div className="flex items-center gap-3">
+                    <Bus className="h-5 w-5" />
+                    <span className="font-medium">ค้นหาตั๋ว</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  to="/search-booking"
+                  className="flex items-center justify-between px-4 py-4 hover:bg-muted/50 transition-colors text-primary"
+                >
+                  <div className="flex items-center gap-3">
+                    <Search className="h-5 w-5" />
+                    <span className="font-medium">ค้นหาตั๋วที่จองแล้ว (Guest)</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </>
+            )} */}
             {menuItems.map(({ label, icon: Icon, to, key }) => (
               <Link
                 key={label}

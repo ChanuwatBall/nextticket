@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Bus, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Bus, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import liff from "@line/liff";
+import { register, loginWithLine } from "@/services/api";
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
@@ -24,7 +27,27 @@ const Register = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLineLogin = async () => {
+    try {
+      await liff.ready;
+      if (!liff.isLoggedIn()) {
+        liff.login();
+      } else {
+        const ltoken = liff.getAccessToken();
+        const res = await loginWithLine({ lineAccessToken: ltoken });
+        if (res && res.token) {
+          localStorage.setItem("user", JSON.stringify(res));
+          toast({ title: "เชื่อมต่อ LINE สำเร็จ!", description: "ยินดีต้อนรับสู่ Nex Express" });
+          navigate("/profile");
+        }
+      }
+    } catch (error) {
+      console.error("LINE Login error:", error);
+      toast({ title: "เชื่อมต่อ LINE ไม่สำเร็จ!", variant: "destructive" });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
       toast({ title: "รหัสผ่านไม่ตรงกัน", description: "กรุณาตรวจสอบรหัสผ่านอีกครั้ง", variant: "destructive" });
@@ -34,8 +57,36 @@ const Register = () => {
       toast({ title: "รหัสผ่านสั้นเกินไป", description: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร", variant: "destructive" });
       return;
     }
-    toast({ title: "ลงทะเบียนสำเร็จ!", description: "ยินดีต้อนรับสู่ Nex Express" });
-    navigate("/profile");
+
+    setLoading(true);
+    try {
+      const res = await register({
+        fullName: form.fullName,
+        phone: form.phone,
+        email: form.email,
+        password: form.password
+      });
+
+      if (res && res.token) {
+        localStorage.setItem("user", JSON.stringify(res));
+        toast({ title: "ลงทะเบียนสำเร็จ!", description: "ยินดีต้อนรับสู่ Nex Express" });
+        navigate("/profile");
+      } else {
+        toast({ 
+          title: "ลงทะเบียนไม่สำเร็จ", 
+          description: res.message || "กรุณาตรวจสอบข้อมูลอีกครั้ง", 
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: "เกิดข้อผิดพลาด", 
+        description: "โปรดลองอีกครั้งในภายหลัง", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,7 +102,7 @@ const Register = () => {
       </header>
 
       <main className="flex-1 p-4 max-w-lg mx-auto w-full">
-        <Card>
+        <Card className="border-none shadow-none sm:border sm:shadow-sm">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
               <Bus className="h-8 w-8 text-primary" />
@@ -59,7 +110,26 @@ const Register = () => {
             <CardTitle className="text-xl">สร้างบัญชี Nex Express</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">สมัครสมาชิกเพื่อสะสมแต้มและรับสิทธิพิเศษ</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full flex items-center justify-center gap-2 border-[#06C755] text-[#06C755] hover:bg-[#06C755] hover:text-white transition-colors"
+              onClick={handleLineLogin}
+            >
+              <MessageCircle className="h-5 w-5 fill-current" />
+              ลงทะเบียนด้วย LINE
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">หรือ</span>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">ชื่อ-นามสกุล</Label>
@@ -91,8 +161,8 @@ const Register = () => {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full" size="lg">
-                ลงทะเบียน
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "กำลังดำเนินการ..." : "ลงทะเบียน"}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 มีบัญชีอยู่แล้ว?{" "}
