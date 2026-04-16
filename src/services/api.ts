@@ -249,6 +249,42 @@ export const getWalletPoint = async () => {
     })
 }
 
+export const getUserMe = async () => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return await api.get(`/api/users/me`, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("getUserMe res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("getUserMe err ", err)
+      return err.response.data
+    })
+}
+
+export const updateMyProfile = async (body: { fullName?: string, phone?: string, email?: string, avatarUrl?: string }) => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return await api.patch(`/api/users/me`, body, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("updateMyProfile res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("updateMyProfile err ", err)
+      return err.response.data
+    })
+}
+
 // curl '/api/bookings/{id}/cancel' \
 //   --request PATCH \
 //   --header 'Authorization: Bearer YOUR_SECRET_TOKEN'

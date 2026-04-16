@@ -21,6 +21,7 @@ import Points from "./pages/Points";
 import Wallet from "./pages/Wallet";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import UpdateProfile from "./pages/UpdateProfile";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import PromotionDetail from "./pages/PromotionDetail";
@@ -129,6 +130,7 @@ const App = () => {
             <Route path="/promotions" element={<Promotions />} />
             <Route path="/promotions/:promoId" element={<PromotionDetail />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/update-profile" element={<UpdateProfile />} />
             <Route path="/points" element={<Points />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/login" element={<Login />} />
@@ -141,5 +143,6 @@ const App = () => {
     </QueryClientProvider>
   );
 };
+
 
 export default App;

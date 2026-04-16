@@ -2,69 +2,88 @@ import { User, Ticket, Star, Wallet, ChevronRight, Bus, LogIn, UserPlus, LogOut 
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
 import liff from "@line/liff";
-import { loginWithLine } from "@/services/api";
+import { getUserMe, loginWithLine } from "@/services/api";
 
 const menuItems = [
-  { label: "ตั๋วของฉัน", icon: Ticket, to: "/my-tickets" },
-  { label: "สะสมแต้ม", icon: Star, to: "/points" },
-  { label: "กระเป๋าเงิน", icon: Wallet, to: "/wallet" },
+  { label: "ตั๋วของฉัน", icon: Ticket, to: "/my-tickets", key: "tickets" },
+  { label: "สะสมแต้ม", icon: Star, to: "/points", key: "points" },
+  { label: "กระเป๋าเงิน", icon: Wallet, to: "/wallet", key: "wallet" },
 ];
-type User = {
-  "token": string,
-  "user": {
-    "id": string,
-    "fullName": string,
-    "phone": string,
-    "email": string,
-    "lineUserId": string,
-    "avatarUrl": string,
-    "points": number,
-    "walletBalance": number,
-    "memberSince": string
-  }
+type UserMe = {
+  "id": string,
+  "fullName": string,
+  "phone": string,
+  "email": string,
+  "lineUserId": string,
+  "avatarUrl": string,
+  "points": number,
+  "walletBalance": number,
+  "memberSince": string
 }
 const Profile = () => {
-  const [user, setUser] = useState<User | null>(null)
+  const [userMe, setUserMe] = useState<UserMe | null>(null)
 
 
   useEffect(() => {
     const conf = async () => {
-      const user = localStorage.getItem("user")
-      if (user) {
-        if (user === "undefined") {
-          const ltoken = await liff.getAccessToken()
-          const reslogin = await loginWithLine({ lineAccessToken: ltoken })
-          console.log("reslogin ", reslogin)
-          localStorage.setItem("user", JSON.stringify(reslogin.data))
-          setUser(reslogin.data)
+      try {
+        const userme = await getUserMe()
+        console.log("userme ", userme)
+        if (userme && userme.id) {
+          setUserMe(userme)
         } else {
-          setUser(JSON.parse(user))
+          // 1. ตรวจสอบข้อมูลใน LocalStorage ก่อนเพื่อการแสดงผลเบื้องต้นที่รวดเร็ว
+          const storedUser = localStorage.getItem("user");
+          if (storedUser && storedUser !== "undefined") {
+            try {
+              const parsedUser = JSON.parse(storedUser);
+              if (parsedUser && parsedUser.user) {
+                setUserMe(parsedUser.user);
+              }
+            } catch (e) {
+              console.error("Failed to parse stored user:", e);
+              localStorage.removeItem("user");
+            }
+          }
         }
-      } else {
-        const isLoggedIn = liff.isLoggedIn();
-        if (!isLoggedIn) {
-          liff.login();
+
+        // 2. จัดการเรื่องสถานะ LINE LIFF
+        await liff.ready;
+
+        if (liff.isLoggedIn()) {
+          const ltoken = liff.getAccessToken();
+          if (ltoken) {
+            const reslogin = await loginWithLine({ lineAccessToken: ltoken });
+            if (reslogin && reslogin.data) {
+              console.log("Login success:", reslogin.data);
+              localStorage.setItem("user", JSON.stringify(reslogin.data));
+              setUserMe(reslogin.data.user);
+
+              // เก็บ Profile เพิ่มเติมถ้าจำเป็น
+              const profile = await liff.getProfile();
+              localStorage.setItem("userProfile", JSON.stringify(profile));
+            }
+          }
+        } else {
+          // หากต้องการให้บังคับ Login ทันทีเมื่อเข้าหน้า Profile สามารถ uncomment บรรทัดล่างได้
+          // liff.login();
         }
-        liff.getProfile().then(async (profile) => { 
-          localStorage.setItem("userProfile", JSON.stringify(profile));
-          const ltoken = await liff.getAccessToken()
-          const reslogin = await loginWithLine({ lineAccessToken: ltoken })
-          console.log("reslogin ", reslogin)
-
-          localStorage.setItem("user", JSON.stringify(reslogin))
-        });
-
+      } catch (error) {
+        console.error("Error during profile initialization:", error);
+        // สามารถจัดการ Error UI เพิ่มเติมตรงนี้ได้
       }
-    }
-    conf()
-  }, [])
+    };
+    conf();
+  }, []);
 
   const logout = async () => {
+    liff.logout()
     localStorage.removeItem("user")
-    setUser(null)
+    setUserMe(null)
     await supabase?.auth.signOut()
   }
   return (
@@ -81,8 +100,8 @@ const Profile = () => {
         <div className="flex flex-col items-center py-6">
           <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-3">
             {
-              user && user?.user?.avatarUrl ? (
-                <img src={user?.user?.avatarUrl} alt="avatar" className="h-30 w-30 rounded-full" />
+              userMe && userMe?.avatarUrl ? (
+                <img src={userMe?.avatarUrl} alt="avatar" className="h-30 w-30 rounded-full" />
               ) : (
                 <User className="h-10 w-10 text-muted-foreground" />
               )
@@ -91,13 +110,13 @@ const Profile = () => {
 
           <h2 className="text-lg font-bold">
             {
-              user && user?.user?.fullName ? user?.user?.fullName : "ผู้ใช้ทั่วไป"
+              userMe && userMe?.fullName ? userMe?.fullName : "ผู้ใช้ทั่วไป"
             }
           </h2>
-          <p className="text-sm text-muted-foreground">{user ? user?.user.phone : "ยังไม่ได้เข้าสู่ระบบ"}</p>
+          <p className="text-sm text-muted-foreground">{userMe ? userMe.phone : "ยังไม่ได้เข้าสู่ระบบ"}</p>
           <div className="flex gap-3 mt-4 w-full max-w-xs">
             {
-              !user && <Button asChild className="flex-1" size="lg">
+              !userMe && <Button asChild className="flex-1" size="lg">
                 <Link to="/login">
                   <LogIn className="h-4 w-4 mr-2" />
                   เข้าสู่ระบบ
@@ -105,7 +124,7 @@ const Profile = () => {
               </Button>
             }
             {
-              !user && <Button asChild variant="outline" className="flex-1" size="lg">
+              !userMe && <Button asChild variant="outline" className="flex-1" size="lg">
                 <Link to="/register">
                   <UserPlus className="h-4 w-4 mr-2" />
                   ลงทะเบียน
@@ -113,7 +132,7 @@ const Profile = () => {
               </Button>
             }
             {
-              user &&
+              userMe &&
               <Button className="flex-1" size="lg" onClick={() => {
                 logout()
               }}>
@@ -127,7 +146,7 @@ const Profile = () => {
         {/* Menu */}
         <Card>
           <CardContent className="p-0 divide-y divide-border">
-            {menuItems.map(({ label, icon: Icon, to }) => (
+            {menuItems.map(({ label, icon: Icon, to, key }) => (
               <Link
                 key={label}
                 to={to}
@@ -137,9 +156,34 @@ const Profile = () => {
                   <Icon className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium">{label}</span>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                  {key === "points" && userMe && (
+                    <Badge variant="secondary" className="font-semibold">
+                      {userMe.points} แต้ม
+                    </Badge>
+                  )}
+                  {key === "wallet" && userMe && (
+                    <Badge variant="secondary" className="font-semibold">
+                      ฿{userMe.walletBalance.toLocaleString()}
+                    </Badge>
+                  )}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
               </Link>
             ))}
+            {userMe && (
+              <Link
+                to="/update-profile"
+                className="flex items-center justify-between px-4 py-4 hover:bg-muted/50 transition-colors text-primary"
+              >
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">อัปเดตข้อมูลโปรไฟล์</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            )}
+
           </CardContent>
         </Card>
       </main>
