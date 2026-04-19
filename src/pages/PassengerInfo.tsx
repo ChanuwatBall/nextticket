@@ -65,7 +65,7 @@ const PassengerInfoPage = () => {
   const updatePassenger = (index: number, field: keyof PassengerInfo, value: string) => {
     setPassengers((prev) => {
       const newPassengers = prev.map((p, i) => (i === index ? { ...p, [field]: value } : p));
-      
+
       // If updating first passenger's phone and "apply to all" is true, sync everyone
       if (index === 0 && field === "phone" && applyAllPhone) {
         return newPassengers.map(p => ({ ...p, phone: value }));
@@ -119,7 +119,7 @@ const PassengerInfoPage = () => {
   const total = Math.max(0, subtotal - store.discount);
 
   return (
-    <BookingLayout currentStep={4} title="ข้อมูลผู้โดยสาร" navto={() => navigate(-1)} >
+    <BookingLayout currentStep={3} title="ข้อมูลผู้โดยสาร" navto={() => navigate(-1)} >
       <div className="px-4 space-y-4">
         {passengers.map((p, i) => (
           <Card key={p.seatId}>
@@ -194,25 +194,24 @@ const PassengerInfoPage = () => {
             <label className="text-sm font-medium flex items-center gap-1.5 mb-2">
               <Tag className="h-3.5 w-3.5" /> รายการโปรโมชั่นที่ใช้ได้
             </label>
-            
+
             <div className="flex gap-3 overflow-x-auto pb-4 mb-4 -mx-1 px-1 scrollbar-hide">
               {promotions.map((promo) => (
-                <div 
+                <div
                   key={promo.id}
                   onClick={() => {
                     setPromoInput(promo.code);
                     setPromoError("");
                     setPromoApplied(false);
                   }}
-                  className={`flex-shrink-0 w-64 p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                    promoInput === promo.code 
-                      ? "border-primary bg-primary/5 shadow-sm" 
-                      : "border-border hover:border-muted-foreground/30 bg-card"
-                  }`}
+                  className={`flex-shrink-0 w-24 p-3 rounded-xl border-2 transition-all cursor-pointer ${promoInput === promo.code
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border hover:border-muted-foreground/30 bg-card"
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-1">
                     <div className="bg-primary/10 p-1.5 rounded-lg">
-                      <TicketIcon className="h-4 w-4 text-primary" />
+                      <TicketIcon className="h-4 w-4 text-primary" /> {promo.title}
                     </div>
                     {promoInput === promo.code && (
                       <Badge className="h-5 px-1.5 bg-primary text-white border-0">
@@ -220,7 +219,8 @@ const PassengerInfoPage = () => {
                       </Badge>
                     )}
                   </div>
-                  <h4 className="font-bold text-sm truncate">{promo.title}</h4>
+                  {/* <h4 className="font-bold text-sm truncate">
+                    {promo.title}</h4> */}
                   <p className="text-xs text-muted-foreground line-clamp-1">{promo.subtitle}</p>
                   <div className="mt-2 text-xs font-mono font-bold text-primary bg-primary/5 px-2 py-0.5 rounded inline-block">
                     {promo.code}

@@ -86,6 +86,12 @@ const SearchResults = () => {
   // }, [busStops]);
 
   const handleSelectTrip = (trip: typeof trips[0]) => {
+    if (store.boardingPointId && store.dropOffPointId) {
+      store.setSelectedTrip(trip);
+      navigate("/seats/" + trip.id);
+      return;
+    }
+
     setSelectedTripToBook(trip);
     console.log("handleSelectTrip trip ", trip)
     console.log("handleSelectTrip busStops ", busStops)
@@ -112,7 +118,7 @@ const SearchResults = () => {
   };
 
   return (
-    <BookingLayout currentStep={2} title="เลือกเที่ยวรถ" navto={() => navigate(-1)}>
+    <BookingLayout currentStep={1} title="เลือกเที่ยวรถ" navto={() => navigate(-1)}>
       <div className="px-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           <MapPin className="h-3.5 w-3.5" />

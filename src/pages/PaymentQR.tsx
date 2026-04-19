@@ -264,7 +264,7 @@ const PaymentQRPage = () => {
   // --- Render logic ---
   if (timeLeft === 0 && chargeStatus !== "successful" && chargeStatus !== "failed") {
     return (
-      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
+      <BookingLayout currentStep={4} navto={() => navigate(-1)} title="หมดเวลา" showSteps={false}>
         <div className="px-4 text-center py-16">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
           <h3 className="text-xl font-bold mb-2">หมดเวลาชำระเงิน</h3>
@@ -277,7 +277,7 @@ const PaymentQRPage = () => {
 
   if (chargeStatus === "failed") {
     return (
-      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินไม่สำเร็จ" showSteps={false}>
+      <BookingLayout currentStep={4} navto={() => navigate(-1)} title="ชำระเงินไม่สำเร็จ" showSteps={false}>
         <div className="px-4 text-center py-16">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
           <h3 className="text-xl font-bold mb-2">ชำระเงินไม่สำเร็จ!</h3>
@@ -290,7 +290,7 @@ const PaymentQRPage = () => {
 
   if (chargeStatus === "successful") {
     return (
-      <BookingLayout currentStep={5} navto={() => navigate(-1)} title="ชำระเงินสำเร็จ" showSteps={false}>
+      <BookingLayout currentStep={4} navto={() => navigate(-1)} title="ชำระเงินสำเร็จ" showSteps={false}>
         <div className="px-4 text-center py-16">
           <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-500" />
           <h3 className="text-xl font-bold mb-2">ชำระเงินสำเร็จ!</h3>
@@ -301,7 +301,7 @@ const PaymentQRPage = () => {
   }
 
   return (
-    <BookingLayout currentStep={5} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
+    <BookingLayout currentStep={4} navto={() => navigate(-1)} title="สแกน QR ชำระเงิน" showSteps={false}>
       <div className="px-4 space-y-4">
         <div className="bg-destructive/10 rounded-lg p-3 flex items-center gap-2 text-sm">
           <Timer className="h-4 w-4 text-destructive" />

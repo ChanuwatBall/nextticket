@@ -36,6 +36,7 @@ const Home = () => {
   const [openRoute, setOpenRoute] = useState(false);
   const [promotions, setPromotions] = useState<any[]>([]);
   const [userMe, setUserMe] = useState<any>(null);
+  const [busStops, setBusStops] = useState<any[]>([]);
   // API Queries
 
   // const { data: promotions = [], isLoading: isLoadingPromotions } = useQuery({
@@ -54,8 +55,20 @@ const Home = () => {
 
 
   const handleBooking = () => {
+    if (!date) {
+      alert("กรุณาเลือกวันที่เดินทาง");
+      return;
+    }
+    if (!store.originProvinceId || !store.destinationProvinceId) {
+      alert("กรุณาเลือกต้นทางและปลายทาง");
+      return;
+    }
+    if (!store.boardingPointId || !store.dropOffPointId) {
+      alert("กรุณาเลือกจุดขึ้นและจุดลงรถ");
+      return;
+    }
     store.setTravelDate(format(date, "yyyy-MM-dd"));
-    navigate("/ticket");
+    navigate("/booking");
   };
 
   useEffect(() => {
@@ -120,6 +133,13 @@ const Home = () => {
 
       }
 
+      try {
+        const { data } = await supabase.from("bus_stops").select("*, route_id(*)");
+        if (data) setBusStops(data);
+      } catch (error) {
+        console.error("fetch bus stops error", error);
+      }
+
     }
     fetchUser();
     conf();
@@ -154,6 +174,22 @@ const Home = () => {
 
     return filteredProvinces.filter(p => reachableDestIds.has(p.id));
   }, [filteredProvinces, filteredRoutes, store?.originProvinceId]);
+
+  const filteredOriginBusStops = useMemo(() => {
+    if (!store.originProvinceId || !busStops.length) return [];
+    return busStops.filter(r => 
+      r.route_id?.origin_id === store.originProvinceId.id && 
+      (r.type === "pickup" || r.type === "stop")
+    );
+  }, [busStops, store.originProvinceId]);
+
+  const filteredDestBusStops = useMemo(() => {
+    if (!store.destinationProvinceId || !busStops.length) return [];
+    return busStops.filter(r => 
+      r.route_id?.destination_id === store.destinationProvinceId.id && 
+      (r.type === "dropoff" || r.type === "stop")
+    );
+  }, [busStops, store.destinationProvinceId]);
 
 
   const selectRoute = (route: any) => {
@@ -294,6 +330,49 @@ const Home = () => {
                   </div>
                 </div>
 
+                {store.originProvinceId && store.destinationProvinceId && (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">จุดขึ้นรถ</label>
+                      <Select 
+                        value={store.boardingPointId?.id} 
+                        onValueChange={(val) => {
+                          const pt = filteredOriginBusStops.find(p => p.id === val);
+                          store.setBoardingPoint(pt);
+                        }}
+                      >
+                        <SelectTrigger className="h-12 border-none bg-transparent" style={{ borderBottom: "1px solid #DDD", borderRadius: "0px" }}>
+                          <SelectValue placeholder="เลือกจุดขึ้น" />
+                        </SelectTrigger>
+                        <SelectContent style={{ zIndex: "999" }}>
+                          {filteredOriginBusStops.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">จุดลงรถ</label>
+                      <Select 
+                        value={store.dropOffPointId?.id} 
+                        onValueChange={(val) => {
+                          const pt = filteredDestBusStops.find(p => p.id === val);
+                          store.setDropOffPoint(pt);
+                        }}
+                      >
+                        <SelectTrigger className="h-12 border-none bg-transparent" style={{ borderBottom: "1px solid #DDD", borderRadius: "0px" }}>
+                          <SelectValue placeholder="เลือกจุดลง" />
+                        </SelectTrigger>
+                        <SelectContent style={{ zIndex: "999" }}>
+                          {filteredDestBusStops.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-2" >
@@ -321,7 +400,7 @@ const Home = () => {
                       <Users className="h-3.5 w-3.5 text-muted-foreground" /> <SelectValue placeholder="เลือกจำนวนผู้โดยสาร" className="text-black" />
                     </SelectTrigger>
                     <SelectContent style={{ zIndex: "999" }} >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                      {[1, 2, 3].map((n) => (
                         <SelectItem key={n} value={String(n)}>{n} คน</SelectItem>
                       ))}
                     </SelectContent>
@@ -331,7 +410,7 @@ const Home = () => {
 
               <Button onClick={handleBooking} className="w-full h-14 text-lg font-bold mt-4" size="lg">
                 <Ticket className="mr-2 h-5 w-5" />
-                จองตั๋วเลย
+                ค้นหาเที่ยวรถ
               </Button>
 
             </div>

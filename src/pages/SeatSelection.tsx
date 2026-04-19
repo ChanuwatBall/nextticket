@@ -117,7 +117,7 @@ const SeatSelection = () => {
   if (!layout) {
     return (
       <PageTransition>
-        <BookingLayout currentStep={3} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
+        <BookingLayout currentStep={2} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
           <div className="flex items-center justify-center p-8 text-muted-foreground">
             กำลังโหลดข้อมูลที่นั่ง...
           </div>
@@ -128,7 +128,7 @@ const SeatSelection = () => {
 
   return (
     <PageTransition>
-      <BookingLayout currentStep={3} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
+      <BookingLayout currentStep={2} title="เลือกที่นั่ง" navto={() => navigate(-1)}>
         <div className="px-4">
           {/* Bus type label */}
           {tripDetail && <div className="text-center text-sm font-semibold text-muted-foreground mb-3">

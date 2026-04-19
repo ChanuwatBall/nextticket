@@ -416,25 +416,25 @@ const http = axios.create({
 // // ─────────────────────────────────────────────
 // // Interfaces — Route & Geography
 // // ─────────────────────────────────────────────
-// export interface Route {
-//   id: string;
-//   name: string;
-//   nameEn: string;
-// }
+export interface Route {
+  id: string;
+  name: string;
+  nameEn: string;
+}
 
-// export interface Province {
-//   id: string;
-//   name: string;
-//   nameEn: string;
-//   routeIds: string[];
-// }
+export interface Province {
+  id: string;
+  name: string;
+  nameEn: string;
+  routeIds: string[];
+}
 
-// export interface BoardingPoint {
-//   id: string;
-//   name: string;
-//   nameEn: string;
-//   provinceId: string;
-// }
+export interface BoardingPoint {
+  id: string;
+  name: string;
+  nameEn: string;
+  provinceId: string;
+}
 
 // // ─────────────────────────────────────────────
 // // Interfaces — Trip & Search
@@ -447,49 +447,50 @@ const http = axios.create({
 //   passengerCount?: number;
 // }
 
-// export interface Trip {
-//   id: string;
-//   route_id: string;
-//   origin_province_id: string;
-//   destination_province_id: string;
-//   departure_time: string;
-//   arrival_time: string;
-//   price: number;
-//   available_seats: number;
-//   total_seats: number;
-//   trip_type: string;
-//   bus_type_id: {
-//     id: string;
-//     name: string;
-//   };
-//   date: string;
-// }
+export interface Trip {
+  id: string;
+  route_id: string;
+  origin_province_id: string;
+  destination_province_id: string;
+  departure_time: string;
+  arrival_time: string;
+  price: number;
+  available_seats: number;
+  total_seats: number;
+  trip_type: string;
+  bus_type_id: {
+    id: string;
+    name: string;
+  };
+  date: string;
+}
 
 // // ─────────────────────────────────────────────
 // // Interfaces — Seat
 // // ─────────────────────────────────────────────
-// export type SeatStatus = "available" | "booked" | "unavailable" | "selected";
+export type SeatStatus = "available" | "booked" | "unavailable" | "selected";
 
-// export interface Seat {
-//   id: string;
-//   number: string;
-//   row: number;
-//   col: number;
-//   status: SeatStatus;
-//   floor: number;
-// }
+export interface Seat {
+  id: string;
+  number: string;
+  row: number;
+  col: number;
+  status: SeatStatus;
+  floor: number;
+  type?: string;
+}
 
-// export interface BusLayout {
-//   id: string;
-//   name: string;
-//   rows: (string | null)[][];
-// }
+export interface BusLayout {
+  id: string;
+  name: string;
+  rows: (string | null)[][];
+}
 
-// export interface TripSeatsResponse {
-//   tripId: string;
-//   layout: BusLayout;
-//   seats: Seat[];
-// }
+export interface TripSeatsResponse {
+  tripId: string;
+  layout: BusLayout;
+  seats: Seat[];
+}
 
 // // ─────────────────────────────────────────────
 // // Interfaces — Booking
@@ -556,19 +557,19 @@ const http = axios.create({
 // // ─────────────────────────────────────────────
 // // Interfaces — Promotion
 // // ─────────────────────────────────────────────
-// export interface Promotion {
-//   id: string;
-//   title: string;
-//   description: string;
-//   imageUrl: string;
-//   promoCode: string;
-//   discountPercent: number;
-//   discountAmount: number;
-//   remainingQuota: number;
-//   expiryDate: string;
-//   validityDays: number;
-//   memberOnly: boolean;
-// }
+export interface Promotion {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  promoCode: string;
+  discountPercent: number;
+  discountAmount: number;
+  remainingQuota: number;
+  expiryDate: string;
+  validityDays: number;
+  memberOnly: boolean;
+}
 
 // export interface ValidatePromoResponse {
 //   valid: boolean;

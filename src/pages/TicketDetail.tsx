@@ -68,7 +68,7 @@ const TicketDetail = () => {
       console.log("booking id detail", detail);
       setTicket(detail);
 
-      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + detail.bookingReference);
+      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + detail.id);
       setQr(qrBookingCode);
 
       if (fetchRoute) {
@@ -287,7 +287,7 @@ const TicketDetail = () => {
               <span className="text-right font-medium">{ticket.busPlate}</span>
               <span className="text-muted-foreground">ที่นั่ง</span>
               <span className="text-right font-medium">
-                {/* {ticket.seats.join(", ")} */}
+                {ticket.seats.join(", ")}
               </span>
             </div>
           </CardContent>
@@ -310,10 +310,10 @@ const TicketDetail = () => {
                     </Badge>
                   </div>
                   <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
+                    {/* <span className="flex items-center gap-1.5">
                       <IdCard className="h-3 w-3" />
                       {p.thaiId}
-                    </span>
+                    </span> */}
                     <span className="flex items-center gap-1.5">
                       <Phone className="h-3 w-3" />
                       {p.phone}

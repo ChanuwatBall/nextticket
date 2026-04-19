@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { getUserMe, updateMyProfile } from "@/services/api";
+import { cn } from "@/lib/utils";
 
 const UpdateProfile = () => {
   const navigate = useNavigate();
@@ -43,21 +44,32 @@ const UpdateProfile = () => {
     setLoading(true);
     try {
       const res = await updateMyProfile(form);
-      if (res && !res.error) {
+      if (res && res.phone !== "" && res.email !== "") {
         toast({ title: "อัปเดตสำเร็จ!", description: "ข้อมูลโปรไฟล์ของคุณถูกบันทึกแล้ว" });
+
+        // Update local storage to reflect changes immediately in UI components like BottomNav
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (userData.user) {
+            userData.user = { ...userData.user, ...form };
+            localStorage.setItem("user", JSON.stringify(userData));
+          }
+        }
+
         navigate("/profile");
       } else {
-        toast({ 
-          title: "เกิดข้อผิดพลาด", 
-          description: res.message || "ไม่สามารถอัปเดตโปรไฟล์ได้", 
-          variant: "destructive" 
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: res.message || "ไม่สามารถอัปเดตโปรไฟล์ได้ เบอร์โทรศัพท์ หรืออีเมลล์ถูกใช้งานแล้ว",
+          variant: "destructive"
         });
       }
     } catch (error) {
-      toast({ 
-        title: "เกิดข้อผิดพลาด", 
-        description: "โปรดลองอีกครั้งในภายหลัง", 
-        variant: "destructive" 
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "โปรดลองอีกครั้งในภายหลัง",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -96,47 +108,59 @@ const UpdateProfile = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="avatarUrl">URL รูปโปรไฟล์</Label>
-                <Input 
-                  id="avatarUrl" 
-                  name="avatarUrl" 
-                  placeholder="https://example.com/avatar.jpg" 
-                  value={form.avatarUrl} 
-                  onChange={handleChange} 
+                <Input
+                  id="avatarUrl"
+                  name="avatarUrl"
+                  placeholder="https://example.com/avatar.jpg"
+                  value={form.avatarUrl}
+                  onChange={handleChange}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="fullName">ชื่อ-นามสกุล</Label>
-                <Input 
-                  id="fullName" 
-                  name="fullName" 
-                  placeholder="กรอกชื่อ-นามสกุล" 
-                  value={form.fullName} 
-                  onChange={handleChange} 
-                  required 
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  placeholder="กรอกชื่อ-นามสกุล"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                <Input 
-                  id="phone" 
-                  name="phone" 
-                  type="tel" 
-                  placeholder="0XX-XXX-XXXX" 
-                  value={form.phone} 
-                  onChange={handleChange} 
-                  required 
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
+                  {!form.phone && (
+                    <span className="text-[10px] text-destructive font-bold uppercase animate-pulse">Required</span>
+                  )}
+                </div>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="0XX-XXX-XXXX"
+                  value={form.phone}
+                  onChange={handleChange}
+                  required
+                  className={cn(
+                    "transition-all",
+                    !form.phone && "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                  )}
                 />
+                {!form.phone && (
+                  <p className="text-[10px] text-destructive font-medium">กรุณาใส่เบอร์โทรศัพท์เพื่อใช้ในการยืนยันการจอง</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">อีเมล</Label>
-                <Input 
-                  id="email" 
-                  name="email" 
-                  type="email" 
-                  placeholder="example@email.com" 
-                  value={form.email} 
-                  onChange={handleChange} 
-                  required 
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="example@email.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
                 />
               </div>
               <Button type="submit" className="w-full" size="lg" disabled={loading}>

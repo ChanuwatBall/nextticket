@@ -89,7 +89,7 @@ const PaymentPage = () => {
 
   return (
     <PageTransition direction="left">
-      <BookingLayout currentStep={5} title="ชำระเงิน" navto={() => navigate(-1)}>
+      <BookingLayout currentStep={4} title="ชำระเงิน" navto={() => navigate(-1)}>
         <div className="px-4 space-y-4">
           {/* Booking Summary */}
           <Card>

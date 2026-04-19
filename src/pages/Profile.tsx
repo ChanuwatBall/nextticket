@@ -1,4 +1,4 @@
-import { User, Ticket, Star, Wallet, ChevronRight, Bus, LogIn, UserPlus, LogOut, Search } from "lucide-react";
+import { User, Ticket, Star, Wallet, ChevronRight, Bus, LogIn, UserPlus, LogOut, Search, MessageSquareWarning } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,11 +7,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
 import liff from "@line/liff";
 import { getUserMe, loginWithLine, logout as apiLogout } from "@/services/api";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   { label: "ตั๋วของฉัน", icon: Ticket, to: "/my-tickets", key: "tickets" },
   { label: "สะสมแต้ม", icon: Star, to: "/points", key: "points" },
-  { label: "กระเป๋าเงิน", icon: Wallet, to: "/wallet", key: "wallet" },
+  { label: "ร้องเรียน", icon: MessageSquareWarning, to: "/complaints", key: "complaints" },
+  // { label: "กระเป๋าเงิน", icon: Wallet, to: "/wallet", key: "wallet" },
 ];
 type UserMe = {
   "id": string,
@@ -187,13 +189,26 @@ const Profile = () => {
             {userMe && (
               <Link
                 to="/update-profile"
-                className="flex items-center justify-between px-4 py-4 hover:bg-muted/50 transition-colors text-primary"
+                className="flex items-center justify-between px-4 py-4 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">อัปเดตข้อมูลโปรไฟล์</span>
+                  <div className="relative">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    {!userMe.phone && (
+                      <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-white animate-pulse" />
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={cn("font-medium", !userMe.phone && "text-destructive")}>อัปเดตข้อมูลโปรไฟล์</span>
+                    {!userMe.phone && (
+                      <span className="text-[10px] text-destructive/80 font-bold">กรุณาเพิ่มเบอร์โทรศัพท์</span>
+                    )}
+                  </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                  {!userMe.phone && <Badge variant="destructive" className="text-[9px] px-1.5 font-black uppercase tracking-tighter">Required</Badge>}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
               </Link>
             )}
 

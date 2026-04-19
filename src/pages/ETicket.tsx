@@ -38,7 +38,7 @@ const ETicketPage = () => {
     // const qrBookingPayload = JSON.stringify({
     //   booking_id: res.bookingReference
     // });
-    const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + res.bookingReference);
+    const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + res.id);
     setQrCode(qrBookingCode)
     setBooking(res)
     // store.setBookingQrcode(qrBookingCode);

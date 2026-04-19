@@ -8,9 +8,9 @@ interface StepIndicatorProps {
   labels?: string[];
 }
 
-const defaultLabels = ["เลือกเส้นทาง", "เลือกเที่ยว", "เลือกที่นั่ง", "ข้อมูลผู้โดยสาร", "ชำระเงิน"];
+const defaultLabels = ["เลือกเที่ยว", "เลือกที่นั่ง & ข้อมูล", "ชำระเงิน"];
 
-const StepIndicator = ({ currentStep, totalSteps = 5, labels = defaultLabels }: StepIndicatorProps) => {
+const StepIndicator = ({ currentStep, totalSteps = 3, labels = defaultLabels }: StepIndicatorProps) => {
   return (
     <div className="w-full px-4 pt-4 pb-1">
       <div className="flex items-start justify-between relative">
@@ -20,7 +20,7 @@ const StepIndicator = ({ currentStep, totalSteps = 5, labels = defaultLabels }: 
           const isActive = step === currentStep;
 
           return (
-            <div key={step} className="flex flex-1 items-start">
+            <div key={step} className={cn("flex items-start", step < totalSteps ? "flex-1" : "flex-none")}>
               <div className="flex flex-col items-center gap-1.5 relative z-10">
                 {/* Step circle */}
                 <motion.div

@@ -9,11 +9,13 @@ import { Bus, Loader2 } from "lucide-react";
 import Home from "./pages/Home";
 import Ticket from "./pages/Ticket";
 import SearchResults from "./pages/SearchResults";
+import BookingFlow from "./pages/BookingFlow";
 import SeatSelection from "./pages/SeatSelection";
 import PassengerInfo from "./pages/PassengerInfo";
 import Payment from "./pages/Payment";
 import PaymentQR from "./pages/PaymentQR";
 import ETicket from "./pages/ETicket";
+import Complaints from "./pages/Complaints";
 import MyTickets from "./pages/MyTickets";
 import TicketDetail from "./pages/TicketDetail";
 import Promotions from "./pages/Promotions";
@@ -104,11 +106,13 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/ticket" element={<Ticket />} />
             <Route path="/search" element={<SearchResults />} />
+            <Route path="/booking" element={<BookingFlow />} />
             <Route path="/seats/:id" element={<SeatSelection />} />
             <Route path="/passengers" element={<PassengerInfo />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/payment/qr" element={<PaymentQR />} />
             <Route path="/e-ticket/:bookingref" element={<ETicket />} />
+            <Route path="/complaints" element={<Complaints />} />
             <Route path="/my-tickets" element={<MyTickets />} />
             <Route path="/my-tickets/:ticketId" element={<TicketDetail />} />
             <Route path="/promotions" element={<Promotions />} />
