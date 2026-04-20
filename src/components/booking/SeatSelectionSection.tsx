@@ -89,7 +89,7 @@ const SeatSelectionSection = ({ onContinue }: SeatSelectionSectionProps) => {
   return (
     <div className="px-4 space-y-4">
       <h3 className="text-lg font-bold">เลือกที่นั่ง ({selectedSeats.length}/{store.passengerCount})</h3>
-      
+
       {tripDetail && (
         <div className="text-center text-xs font-semibold text-muted-foreground">
           {tripDetail?.busType} {tripDetail?.tripType} {tripDetail?.totalSeats} ที่นั่ง
@@ -115,8 +115,8 @@ const SeatSelectionSection = ({ onContinue }: SeatSelectionSectionProps) => {
             <div key={rowIdx} className="flex items-center justify-center gap-1">
               {row.map((cell, colIdx) => {
                 const aisleClass = colIdx === 1 ? "mr-4" : "";
-                if (cell === null) return <div key={colIdx} className={cn("w-10 h-10", aisleClass)} />;
-                
+                if (cell === null || cell === "") return <div key={colIdx} className={cn("w-10 h-10", aisleClass)} />;
+
                 if (isSpecialCell(cell)) {
                   return (
                     <div key={colIdx} className={cn("w-10 h-10 rounded-lg bg-muted flex flex-col items-center justify-center text-muted-foreground text-[7px] leading-tight", aisleClass)}>

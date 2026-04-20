@@ -8,9 +8,10 @@ import { QrCode, MapPin, Clock, Bus, User, CreditCard, ArrowLeft, Download, Mail
 import { useBookingStore } from "@/store/bookingStore";
 import { useEffect, useState } from "react";
 import { supabase } from "@/http/supabase";
-import { bookingDetail, cancelBooking, cancelCharge } from "@/services/api";
+import { bookingDetail, cancelBooking, cancelCharge, checkinSelf } from "@/services/api";
 import QRCode from "qrcode";
 import moment from "moment";
+import { useToast } from "@/components/ui/use-toast";
 import "../css/TicketDetail.css"
 
 const statusConfig: Record<string, { label: string, variant: "default" | "success" | "destructive" | "outline" | "secondary" }> = {
@@ -50,11 +51,13 @@ const passengerTypeLabels: Record<string, string> = {
 };
 
 const TicketDetail = () => {
+  const { toast } = useToast();
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate()
   const store = useBookingStore();
   const [ticket, setTicket] = useState(null)
   const [qr, setQr] = useState("")
+  const [isCheckinLoading, setIsCheckinLoading] = useState(false)
   const [route, setRoute] = useState<any>(null)
   // ticketId ? mockTicketDetails[ticketId] : null;
   const fetchTicket = async (fetchRoute = false) => {
@@ -68,7 +71,7 @@ const TicketDetail = () => {
       console.log("booking id detail", detail);
       setTicket(detail);
 
-      const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + detail.id);
+      const qrBookingCode = await QRCode.toDataURL(detail.id);
       setQr(qrBookingCode);
 
       if (fetchRoute) {
@@ -200,6 +203,51 @@ const TicketDetail = () => {
         }
       }
     });
+  };
+
+  const handleCheckin = async () => {
+    if (!ticket) return;
+
+    const departureTime = moment(`${ticket.date} ${ticket.departureTime}`, "YYYY-MM-DD HH:mm");
+    if (moment().isBefore(departureTime)) {
+      toast({
+        title: "ยังไม่ถึงเวลาเดินทาง",
+        description: `คุณสามารถเช็คอินได้ใน วันที่ ${ticket.date} เวลา ${ticket.departureTime} น.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCheckinLoading(true);
+    try {
+      const res = await checkinSelf({
+        ticketNumber: ticket.bookingReference,
+        qrCode: qr
+      });
+      console.log("Check-in result:", res);
+      if (res.status === "success" || res.success) {
+        toast({
+          title: "เช็คอินสำเร็จ",
+          description: "ขอให้คุณมีความสุขกับการเดินทาง",
+        });
+        fetchTicket(false); // Refresh status
+      } else {
+        toast({
+          title: "เช็คอินไม่สำเร็จ",
+          description: res.message || "เกิดข้อผิดพลาดบางอย่าง",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Check-in error:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckinLoading(false);
+    }
   };
 
   return (
@@ -363,7 +411,7 @@ const TicketDetail = () => {
         </Card>
 
         {/* Actions */}
-        {statusInfo.label === "กำลังจะถึง" && (
+        {(statusInfo.label === "กำลังจะถึง" || statusInfo.label === "เสร็จสิ้น") && ticket.paymentStatus === "paid" && (
           <div className="space-y-4 ">
             {/* <div className="space-y-2">
               <Button variant="outline" className="w-full h-11">
@@ -376,9 +424,13 @@ const TicketDetail = () => {
               </Button>
             </div> */}
 
-            <Button className="w-full h-14 bg-primary hover:bg-primary-700 text-white font-bold text-lg shadow-lg">
+            <Button
+              onClick={handleCheckin}
+              disabled={isCheckinLoading}
+              className="w-full h-14 bg-primary hover:bg-primary-700 text-white font-bold text-lg shadow-lg"
+            >
               <CheckIcon className="mr-2 h-6 w-6" />
-              เช็คอิน
+              {isCheckinLoading ? "กำลังดำเนินการ..." : "เช็คอิน"}
             </Button>
           </div>
         )}

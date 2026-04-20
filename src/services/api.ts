@@ -355,6 +355,24 @@ export const cancelCharge = (chargeId: string) => {
     })
 }
 
+export const checkinSelf = async (body: { ticketNumber: string, qrCode: string }) => {
+  const userstr = localStorage.getItem("user")
+  const user = JSON.parse(userstr || "{}")
+  return await api.post("/api/checkin/self", body, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("checkinSelf res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("checkinSelf err ", err)
+      return err.response.data
+    })
+}
+
 export const getPromotions = async () => {
   return await api.get(`/api/promotions`)
     .then((res) => {

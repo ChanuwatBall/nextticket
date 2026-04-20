@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import StepIndicator from "./StepIndicator";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 interface BookingLayoutProps {
   children: ReactNode;
@@ -13,25 +15,44 @@ interface BookingLayoutProps {
 
 const BookingLayout = ({ children, currentStep = 1, showSteps = true, title, navto }: BookingLayoutProps) => {
   const navigate = useNavigate();
-  return (
-    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+  const [isScrolled, setIsScrolled] = useState(false);
 
-      <header className="text-primary-foreground px-4 py-3 gap-3 sticky top-0 z-50 bg-white border-b shadow-sm">
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+
+      <header className={cn(
+        "w-full z-50 bg-white transition-all duration-300",
+        isScrolled ? "fixed top-0 left-0 right-0 shadow-md py-1" : "sticky top-0 border-b py-3"
+      )}>
         {title && (
-          <div className="px-4 pt-4 pb-2 flex items-center gap-4 text-black">
+          <div className={cn(
+            "px-4 flex items-center gap-4 text-black transition-all",
+            isScrolled ? "pt-2 pb-1" : "pt-4 pb-2"
+          )}>
             <button onClick={() => { navto ? navto() : navigate(-1) }} className="p-1">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h2 className="text-lg font-bold">{title}</h2>
+            <h2 className={cn("font-bold transition-all", isScrolled ? "text-base" : "text-lg")}>{title}</h2>
           </div>
         )}
 
         {showSteps && currentStep && (
-          <div className="bg-white pb-2 w-full" >
+          <div className={cn("bg-white w-full transition-all", isScrolled ? "pb-1" : "pb-2")}>
             <StepIndicator currentStep={currentStep} />
           </div>
         )}
       </header>
+
+      {/* Spacer when fixed */}
+      {isScrolled && <div className="h-[120px]" />}
 
       {/* Content */}
       <main className="flex-1 w-full pb-32 bg-white flex flex-col pt-2">

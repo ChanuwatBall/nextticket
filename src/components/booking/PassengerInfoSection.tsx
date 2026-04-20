@@ -23,14 +23,11 @@ interface PassengerInfoSectionProps {
 }
 
 const passengerTypes = [
-  { value: "male", label: "ชาย", multiplier: 1.0 },
-  { value: "female", label: "หญิง", multiplier: 1.0 },
-  { value: "child", label: "เด็ก", multiplier: 0.5 },
-  { value: "monk", label: "พระสงฆ์", multiplier: 0.8 },
+  { value: "male", label: "ชาย" },
+  { value: "female", label: "หญิง" },
+  { value: "child", label: "เด็ก" },
+  { value: "monk", label: "พระสงฆ์" },
 ] as const;
-
-const getMultiplier = (value: string) =>
-  passengerTypes.find(t => t.value === value)?.multiplier ?? 1.0;
 
 const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
   const store = useBookingStore();
@@ -95,9 +92,7 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
   };
 
   const calculateSubtotal = () => {
-    return passengers.reduce((sum, p) => {
-      return sum + (tripPrice * getMultiplier(p.passengerType));
-    }, 0);
+    return passengers.length * tripPrice;
   };
 
   const applyPromo = async () => {
@@ -209,12 +204,7 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
                 <div className="bg-primary/5 rounded-lg p-2.5 flex justify-between items-center mt-2">
                   <span className="text-[10px] font-bold text-primary uppercase">ราคาที่นั่งนี้</span>
                   <div className="text-right">
-                    <span className="text-sm font-bold text-primary">฿{tripPrice * getMultiplier(p.passengerType)}</span>
-                    {p.passengerType !== 'male' && p.passengerType !== 'female' && (
-                      <span className="text-[9px] text-muted-foreground ml-1.5 line-through decoration-muted-foreground/50">
-                        ฿{tripPrice}
-                      </span>
-                    )}
+                    <span className="text-sm font-bold text-primary">฿{tripPrice.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
