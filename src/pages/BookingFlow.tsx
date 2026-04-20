@@ -59,7 +59,7 @@ const BookingFlow = () => {
     <BookingLayout currentStep={currentStep} title={stepTitles[currentStep] || "จองตั๋ว"}>
       <div className="flex flex-col pb-32">
         {/* Step 1: Select Trip */}
-        <div id="step-1" className="scroll-mt-32 min-h-[calc(100vh-160px)] py-4">
+        <div id="step-1" className="scroll-mt-32 min-h-[calc(100vh-160px)] py-4 pt-0">
           <SearchResultsSection
             onSelectTrip={(trip) => {
               store.setSelectedTrip(trip);
@@ -76,7 +76,7 @@ const BookingFlow = () => {
                 setTimeout(() => scrollTo(step3Ref), 100);
               }}
             />
-            
+
             {store.selectedSeats.length > 0 && (
               <div ref={step3Ref} className="mt-8 pt-8 border-t border-dashed border-slate-200">
                 <PassengerInfoSection
