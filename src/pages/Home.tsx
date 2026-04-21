@@ -133,17 +133,38 @@ const Home = () => {
 
       }
 
-      try {
-        const { data } = await supabase.from("bus_stops").select("*, route_id(*)");
-        if (data) setBusStops(data);
-      } catch (error) {
-        console.error("fetch bus stops error", error);
-      }
-
     }
     fetchUser();
     conf();
   }, [store])
+
+  useEffect(() => {
+    const fetchBusStopsForRoute = async () => {
+      if (store.originProvinceId && store.destinationProvinceId && routes.length > 0) {
+        const matchedRoute = routes.find(
+          (r) =>
+            r.origin_id === store.originProvinceId.id &&
+            r.destination_id === store.destinationProvinceId.id
+        );
+
+        if (matchedRoute) {
+          try {
+            const { data } = await supabase
+              .from("bus_stops")
+              .select("*, route_id(*)")
+              .eq("route_id", matchedRoute.id);
+            if (data) setBusStops(data);
+          } catch (error) {
+            console.error("fetch bus stops error", error);
+          }
+        } else {
+          setBusStops([]);
+        }
+      }
+    };
+
+    fetchBusStopsForRoute();
+  }, [store.originProvinceId, store.destinationProvinceId, routes]);
 
 
 
