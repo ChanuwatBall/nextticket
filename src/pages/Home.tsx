@@ -77,6 +77,15 @@ const Home = () => {
       try {
         const userme = await getUserMe();
         if (userme?.error === 'Unauthorized') {
+          if (liff.isLoggedIn()) {
+            const ltoken = liff.getAccessToken();
+            const reslogin = await loginWithLine({ lineAccessToken: ltoken || "" });
+            if (reslogin && reslogin.token) {
+              localStorage.setItem("user", JSON.stringify(reslogin));
+              window.location.reload();
+              return;
+            }
+          }
           liff.login();
           return;
         }
