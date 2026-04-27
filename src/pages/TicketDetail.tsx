@@ -94,7 +94,7 @@ const TicketDetail = () => {
           console.log("trip", trip)
 
           const qrBookingPayload = JSON.stringify({ "trip": trip.id, "bookingReference": detail.bookingReference });
-          const qrBookingCode = await QRCode.toDataURL(qrBookingPayload);
+          const qrBookingCode = await QRCode.toDataURL(btoa(qrBookingPayload));
           setQr(qrBookingCode);
         }
       }

@@ -191,10 +191,8 @@ const PaymentQRPage = () => {
           setBookingRef(bookingres?.bookingReference)
           store.setNewBookingId(bookingres?.bookingId)
           // console.log("bookingbody ", bookingbody)
-          const qrBookingPayload = JSON.stringify({
-            booking_id: bookingres.bookingReference
-          });
-          const qrBookingCode = await QRCode.toDataURL("nex-ticket.com#" + qrBookingPayload);
+          const qrBookingPayload = JSON.stringify({ "trip": bookingBody?.tripId, "bookingReference": bookingres.bookingReference });
+          const qrBookingCode = await QRCode.toDataURL(btoa(qrBookingPayload));
           store.setBookingQrcode(qrBookingCode);
           // const { data, error } = await supabase.from("bookings").update({
           //   "qr_code": qrBookingCode

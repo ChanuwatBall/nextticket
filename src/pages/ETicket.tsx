@@ -36,7 +36,7 @@ const ETicketPage = () => {
       console.log("error booking detail")
     }
     const qrBookingPayload = JSON.stringify({ "trip": res.tripId, "bookingReference": res.bookingReference });
-    const qrBookingCode = await QRCode.toDataURL(qrBookingPayload);
+    const qrBookingCode = await QRCode.toDataURL(btoa(qrBookingPayload));
     setQrCode(qrBookingCode)
     setBooking(res)
     // store.setBookingQrcode(qrBookingCode);
