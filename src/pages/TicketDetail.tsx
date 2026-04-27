@@ -71,8 +71,6 @@ const TicketDetail = () => {
       console.log("booking id detail", detail);
       setTicket(detail);
 
-      const qrBookingCode = await QRCode.toDataURL(detail.id);
-      setQr(qrBookingCode);
 
       if (fetchRoute) {
         const { data: routesData, error } = await supabase.from("routes")
@@ -85,8 +83,23 @@ const TicketDetail = () => {
           console.error("Error fetching route:", error);
         } else {
           setRoute(routesData);
+
+          const { data: trip, error: tripError } = await supabase.from("trips")
+            .select("* , bus_type_id(*)")
+            .eq("route_id", routesData.id)
+            .eq("departure_time", detail.departureTime)
+            .eq("arrival_time", detail.arrivalTime)
+            .eq("date", detail.date)
+            .single()
+          console.log("trip", trip)
+
+          const qrBookingPayload = JSON.stringify({ "trip": trip.id, "bookingReference": detail.bookingReference });
+          const qrBookingCode = await QRCode.toDataURL(qrBookingPayload);
+          setQr(qrBookingCode);
         }
       }
+
+
     } catch (err) {
       console.error("Error in fetchTicket:", err);
     }
