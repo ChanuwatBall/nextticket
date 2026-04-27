@@ -373,6 +373,30 @@ export const checkinSelf = async (body: { ticketNumber: string, qrCode: string }
     })
 }
 
+export const createComplaint = async (body: {
+  reporter_phone: string;
+  complaint_text: string;
+  vehicle_plate: string;
+  trip_id: string;
+  seat_code: string;
+}) => {
+  const userstr = localStorage.getItem("user");
+  const user = JSON.parse(userstr || "{}");
+  return await api.post("/api/complaints", body, {
+    headers: {
+      "Authorization": `Bearer ${user.token}`
+    }
+  })
+    .then((res) => {
+      console.log("createComplaint res ", res);
+      return res.data;
+    })
+    .catch((err) => {
+      console.log("createComplaint err ", err);
+      return err.response.data;
+    });
+};
+
 export const getPromotions = async () => {
   return await api.get(`/api/promotions`)
     .then((res) => {

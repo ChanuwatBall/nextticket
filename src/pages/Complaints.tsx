@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin, Clock, ChevronRight, CheckCircle2, MessageSquare, AlertCircle, Bus } from "lucide-react";
-import { bookingList } from "@/services/api";
+import { bookingList, createComplaint } from "@/services/api";
 import { toast } from "sonner";
 import moment from "moment";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,8 @@ type Ticket = {
   paymentStatus: string;
   expiresAt: string;
   total: number;
+  tripId?: string;
+  busPlate?: string;
 };
 
 const Complaints = () => {
@@ -37,7 +39,20 @@ const Complaints = () => {
   const [submitting, setSubmitting] = useState(false);
   const [busPlate, setBusPlate] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [caseId, setCaseId] = useState("");
   const [step, setStep] = useState(1); // 1: Select Ticket, 2: Write Complaint, 3: Success
+
+
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      if (user?.user?.phone) {
+        // setPhoneNumber(user.user.phone.replace(/\D/g, "").slice(0, 10));
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -60,6 +75,8 @@ const Complaints = () => {
   }, []);
 
   const handleSubmit = async () => {
+    if (!selectedTicket) return;
+
     if (!complaintText.trim()) {
       toast.error("กรุณากรอกรายละเอียดเรื่องที่ต้องการร้องเรียน");
       return;
@@ -72,12 +89,26 @@ const Complaints = () => {
 
     setSubmitting(true);
     try {
-      // Logic for submitting complaint would go here
-      // For now, we simulate success
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setStep(3);
+      const payload = {
+        reporter_phone: phoneNumber,
+        complaint_text: complaintText,
+        vehicle_plate: busPlate || selectedTicket.busPlate || "",
+        trip_id: selectedTicket.tripId || "",
+        seat_code: selectedTicket.seats.join(", ")
+      };
+
+      const res = await createComplaint(payload);
+
+      if (res?.data?.id) {
+        setCaseId(res.data.id);
+        setStep(3);
+        toast.success("ส่งข้อร้องเรียนเรียบร้อยแล้ว");
+      } else {
+        toast.error(res.message || "เกิดข้อผิดพลาดในการส่งข้อมูล");
+      }
     } catch (error) {
-      toast.error("เกิดข้อผิดพลาดในการส่งข้อมูล");
+      console.error("Submit complaint error:", error);
+      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     } finally {
       setSubmitting(false);
     }
@@ -226,7 +257,8 @@ const Complaints = () => {
                     type="tel"
                     placeholder="เบอร์โทรติดต่อ"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    maxLength={10}
                     className="h-10 text-sm focus:ring-primary"
                   />
                 </div>
@@ -243,15 +275,7 @@ const Complaints = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="font-bold">แนบรูปภาพ (ถ้ามี)</Label>
-                <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-primary/50 transition-colors cursor-pointer bg-slate-50/50">
-                  <div className="bg-white h-10 w-10 rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm border">
-                    <AlertCircle className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium">กดเพื่อเพิ่มรูปภาพ</p>
-                </div>
-              </div>
+
             </div>
 
             <div className="flex gap-3">
@@ -288,7 +312,7 @@ const Complaints = () => {
             <Card className="max-w-xs mx-auto bg-slate-50 border-none shadow-sm">
               <CardContent className="p-4 text-xs">
                 <p className="font-bold text-slate-400 mb-2 uppercase tracking-widest text-[9px]">หมายเลขรับเรื่อง</p>
-                <p className="text-lg font-black text-primary">CASE-{Math.floor(Math.random() * 900000) + 100000}</p>
+                <p className="text-lg font-black text-primary">{caseId || `CASE-${Math.floor(Math.random() * 900000) + 100000}`}</p>
               </CardContent>
             </Card>
 
