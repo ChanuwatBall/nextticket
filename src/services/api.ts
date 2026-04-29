@@ -505,6 +505,8 @@ export interface Trip {
     name: string;
   };
   date: string;
+  origin: string;
+  destination: string;
 }
 
 // // ─────────────────────────────────────────────

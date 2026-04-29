@@ -14,7 +14,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Tag, Ticket as TicketIcon, Check, User } from "lucide-react";
+import { Tag, Ticket as TicketIcon, Check, User, Coins, Route } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import moment from "moment";
 
@@ -52,15 +53,46 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
   const [promoError, setPromoError] = useState("");
   const [applyAllPhone, setApplyAllPhone] = useState(false);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [showCouponDialog, setShowCouponDialog] = useState(false);
+  
+  const redeemableCoupons = [
+    {
+      id: 'coupon-1',
+      title: 'คูปองส่วนลด 50 บาท',
+      pointsRequired: 200,
+      code: 'PT50',
+      discountAmount: 50
+    },
+    {
+      id: 'coupon-2',
+      title: 'คูปองส่วนลด 100 บาท',
+      pointsRequired: 500,
+      code: 'PT100',
+      discountAmount: 100
+    }
+  ];
 
   useEffect(() => {
     supabase.from("promotions").select("*")
       .eq("is_active", true)
       .gte("valid_to", moment().format("YYYY-MM-DDTHH:mm:ssZ"))
       .then(res => {
-        if (res.data) setPromotions(res.data);
+        const apiPromos = res.data || [];
+        
+        const routeOrigin = store.selectedTrip?.origin || 'กรุงเทพฯ';
+        const routeDest = store.selectedTrip?.destination || 'นครราชสีมา';
+        const freeRoutePromo = {
+          id: 'free-route-1',
+          code: 'FREERIDE10',
+          title: `ฟรี 1 เที่ยว ${routeOrigin}-${routeDest}`,
+          subtitle: 'สะสมครบ 10 เที่ยวแล้ว!',
+          discountAmount: tripPrice,
+          isRouteReward: true,
+        };
+
+        setPromotions([freeRoutePromo, ...apiPromos]);
       });
-  }, []);
+  }, [store.selectedTrip, tripPrice]);
 
   // Sync passengers when selectedSeats changes
   useEffect(() => {
@@ -95,16 +127,37 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
     return passengers.length * tripPrice;
   };
 
-  const applyPromo = async () => {
-    const promo: any = await validatePromo(promoInput.toUpperCase(), store.selectedTrip?.id ?? "");
+  const doApplyPromo = async (code: string) => {
+    if (!code) return;
+    const redeemed = redeemableCoupons.find(c => c.code === code.toUpperCase());
+    if (redeemed) {
+      setPromoError("");
+      setPromoApplied(true);
+      store.setPromoCode(code);
+      store.setDiscount(redeemed.discountAmount);
+      toast.success("ใช้โค้ดลดจากคูปองพอยท์สำเร็จ!");
+      return;
+    }
+
+    if (code.toUpperCase() === 'FREERIDE10') {
+      setPromoError("");
+      setPromoApplied(true);
+      store.setPromoCode(code);
+      store.setDiscount(tripPrice);
+      toast.success("ใช้สิทธิ์นั่งฟรี 1 เที่ยวสำเร็จ!");
+      return;
+    }
+
+    const promo: any = await validatePromo(code.toUpperCase(), store.selectedTrip?.id ?? "");
     if (!promo.valid) {
       setPromoError(promo.message);
       setPromoApplied(false);
+      store.setDiscount(0);
       toast.error(promo.message);
     } else {
       setPromoError("");
       setPromoApplied(true);
-      store.setPromoCode(promoInput);
+      store.setPromoCode(code);
       const subtotal = calculateSubtotal();
       const discount = promo.discountPercent > 0
         ? Math.round(subtotal * promo.discountPercent / 100)
@@ -112,6 +165,20 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
       store.setDiscount(discount);
       toast.success("ใช้โค้ดลดสำเร็จ!");
     }
+  };
+
+  const applyPromo = () => doApplyPromo(promoInput);
+
+  const handleRedeemCoupon = (coupon: any) => {
+    // Add to promotion list if not present
+    const isAlreadyAdded = promotions.find(p => p.code === coupon.code);
+    if (!isAlreadyAdded) {
+      setPromotions([{ ...coupon, isRedeemed: true, subtitle: `แลกคูปองด้วย ${coupon.pointsRequired} พอยท์` }, ...promotions]);
+    }
+    setPromoInput(coupon.code);
+    setShowCouponDialog(false);
+    toast.success(`แลกคูปอง ${coupon.title} สำเร็จ! ระบบได้เลือกใช้งานอัตโนมัติ`);
+    doApplyPromo(coupon.code);
   };
 
   const allValid = passengers.every(
@@ -215,9 +282,14 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
 
       <Card>
         <CardContent className="p-4">
-          <label className="text-sm font-bold flex items-center gap-1.5 mb-2">
-            <Tag className="h-3.5 w-3.5" /> รายการโปรโมชั่นที่ใช้ได้
-          </label>
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-sm font-bold flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5 shrink-0" /> โปรโมชั่นและคูปอง
+            </label>
+            <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 shrink-0" onClick={() => setShowCouponDialog(true)}>
+              <Coins className="h-3 w-3 mr-1" /> แลกด้วยพอยท์
+            </Button>
+          </div>
 
           <div className="flex gap-3 overflow-x-auto pb-4 mb-4 -mx-1 px-1 scrollbar-hide">
             {promotions.map((promo) => (
@@ -227,25 +299,26 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
                   setPromoInput(promo.code);
                   setPromoError("");
                   setPromoApplied(false);
+                  doApplyPromo(promo.code);
                 }}
                 className={`flex-shrink-0 w-48 p-2.5 rounded-xl border-2 transition-all cursor-pointer ${promoInput === promo.code
-                  ? "border-primary bg-primary/5 shadow-sm"
+                  ? (promo.isRedeemed ? "border-amber-400 bg-amber-50 shadow-sm ring-1 ring-amber-400/20" : promo.isRouteReward ? "border-emerald-400 bg-emerald-50 shadow-sm ring-1 ring-emerald-400/20" : "border-primary bg-primary/5 shadow-sm")
                   : "border-border hover:border-muted-foreground/30 bg-card"
                   }`}
               >
                 <div className="flex items-start justify-between mb-1">
-                  <div className="bg-primary/10 p-1 rounded-lg">
-                    <TicketIcon className="h-3 w-3 text-primary" />
+                  <div className={`p-1 rounded-lg ${promo.isRedeemed ? 'bg-amber-100/50' : promo.isRouteReward ? 'bg-emerald-100/50' : 'bg-primary/10'}`}>
+                    {promo.isRedeemed ? <Coins className="h-3 w-3 text-amber-500" /> : promo.isRouteReward ? <Route className="h-3 w-3 text-emerald-500" /> : <TicketIcon className="h-3 w-3 text-primary" />}
                   </div>
                   {promoInput === promo.code && (
-                    <Badge className="h-4 px-1 bg-primary text-white border-0">
+                    <Badge className={`h-4 px-1 text-white border-0 ${promo.isRedeemed ? 'bg-amber-500' : promo.isRouteReward ? 'bg-emerald-500' : 'bg-primary'}`}>
                       <Check className="h-2 w-2" />
                     </Badge>
                   )}
                 </div>
-                <h4 className="font-bold text-xs truncate">{promo.title}</h4>
-                <p className="text-[10px] text-muted-foreground line-clamp-1">{promo.subtitle}</p>
-                <div className="mt-1.5 text-[10px] font-mono font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded inline-block">
+                <h4 className={`font-bold text-xs truncate ${promo.isRedeemed ? 'text-amber-800' : promo.isRouteReward ? 'text-emerald-800' : ''}`}>{promo.title}</h4>
+                <p className={`text-[10px] line-clamp-1 ${promo.isRedeemed ? 'text-amber-700/60 font-medium' : promo.isRouteReward ? 'text-emerald-700/60 font-medium' : 'text-muted-foreground'}`}>{promo.subtitle}</p>
+                <div className={`mt-1.5 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded inline-block ${promo.isRedeemed ? 'bg-amber-100/50 text-amber-600' : promo.isRouteReward ? 'bg-emerald-100/50 text-emerald-600' : 'bg-primary/5 text-primary'}`}>
                   {promo.code}
                 </div>
               </div>
@@ -282,7 +355,7 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
         </div>
         {store.discount > 0 && (
           <div className="flex justify-between text-primary font-bold">
-            <span>ส่วนลดโปรโมชั่น</span>
+            <span>{redeemableCoupons.find(c => c.code === promoInput?.toUpperCase()) ? 'ส่วนลดจากคูปองพอยท์' : promoInput?.toUpperCase() === 'FREERIDE10' ? 'สิทธิ์นั่งฟรี 1 เที่ยว' : 'ส่วนลดโปรโมชั่น'}</span>
             <span>-฿{store.discount}</span>
           </div>
         )}
@@ -291,6 +364,37 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
           <span className="text-primary text-lg">฿{Math.max(0, subtotal - store.discount)}</span>
         </div>
       </div>
+
+      <Dialog open={showCouponDialog} onOpenChange={setShowCouponDialog}>
+        <DialogContent className="max-w-md w-[95vw] rounded-2xl mx-auto flex flex-col gap-0 p-0 border-none shadow-xl max-h-[80vh]">
+          <DialogHeader className="p-5 pb-3 border-b bg-amber-50/50 rounded-t-2xl">
+            <DialogTitle className="text-left font-bold text-lg flex items-center gap-2 text-amber-800">
+              <Coins className="h-5 w-5 text-amber-500" /> แลกคูปองด้วยพอยท์
+            </DialogTitle>
+            <DialogDescription className="text-left text-xs text-amber-700/70">
+              สะสมพอยท์คงเหลือของคุณ: <span className="font-bold text-amber-700">1,250 พอยท์</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 overflow-y-auto space-y-3 bg-slate-50/50 rounded-b-2xl">
+            {redeemableCoupons.map(coupon => (
+              <div key={coupon.id} className="bg-white border border-amber-100 rounded-xl p-3 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 p-2 rounded-full shrink-0">
+                    <Coins className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-800 leading-none mb-1.5">{coupon.title}</h4>
+                    <p className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 inline-block">ใช้ {coupon.pointsRequired} พอยท์</p>
+                  </div>
+                </div>
+                <Button onClick={() => handleRedeemCoupon(coupon)} size="sm" className="bg-amber-500 hover:bg-amber-600 h-8 text-xs font-bold text-white shadow-sm shrink-0">
+                  แลกเลย
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Button onClick={handleContinue} disabled={!allValid} className="w-full h-12 text-base font-bold">
         ยืนยันข้อมูลผู้โดยสาร

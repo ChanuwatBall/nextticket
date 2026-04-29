@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MapPin, Clock, ChevronRight, CheckCircle2, MessageSquare, AlertCircle, Bus } from "lucide-react";
 import { bookingList, createComplaint } from "@/services/api";
 import { toast } from "sonner";
@@ -41,6 +42,8 @@ const Complaints = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [caseId, setCaseId] = useState("");
   const [step, setStep] = useState(1); // 1: Select Ticket, 2: Write Complaint, 3: Success
+  const [isGeneralComplaint, setIsGeneralComplaint] = useState(false);
+  const [showTickets, setShowTickets] = useState(false);
 
 
 
@@ -75,7 +78,7 @@ const Complaints = () => {
   }, []);
 
   const handleSubmit = async () => {
-    if (!selectedTicket) return;
+    if (!selectedTicket && !isGeneralComplaint) return;
 
     if (!complaintText.trim()) {
       toast.error("กรุณากรอกรายละเอียดเรื่องที่ต้องการร้องเรียน");
@@ -92,9 +95,9 @@ const Complaints = () => {
       const payload = {
         reporter_phone: phoneNumber,
         complaint_text: complaintText,
-        vehicle_plate: busPlate || selectedTicket.busPlate || "",
-        trip_id: selectedTicket.tripId || "",
-        seat_code: selectedTicket.seats.join(", ")
+        vehicle_plate: busPlate || selectedTicket?.busPlate || "",
+        trip_id: selectedTicket?.tripId || null,
+        seat_code: selectedTicket ? selectedTicket.seats.join(", ") : ""
       };
 
       const res = await createComplaint(payload);
@@ -115,79 +118,162 @@ const Complaints = () => {
   };
 
   return (
-    <BookingLayout showSteps={false} title="แจ้งเรื่องร้องเรียน" navto={() => navigate(-1)}>
+    <BookingLayout
+      showSteps={false}
+      title="แจ้งเรื่องร้องเรียน"
+      navto={() => {
+        if (step === 2 || step === 3) {
+          setStep(1);
+          setIsGeneralComplaint(false);
+        } else {
+          navigate(-1);
+        }
+      }}
+    >
       <div className="px-4 space-y-6">
         {step === 1 && (
           <div className="space-y-4">
             <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
               <h2 className="text-sm font-bold flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-primary" />
-                ขั้นตอนที่ 1: เลือกรายการจอง
+                ขั้นตอนที่ 1: เลือกรายการจอง หรือ เรื่องทั่วไป
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">กรุณาเลือกรายการจองที่ท่านต้องการแจ้งปัญหาหรือข้อร้องเรียน</p>
+              <p className="text-xs text-muted-foreground mt-1">กรุณาเลือกลักษณะของปัญหาหรือข้อร้องเรียน</p>
             </div>
 
-            {loading ? (
-              <div className="py-20 text-center text-muted-foreground animate-pulse">กำลังโหลดข้อมูลการจอง...</div>
-            ) : tickets.length === 0 ? (
-              <div className="py-20 text-center space-y-4">
-                <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mx-auto text-muted-foreground">
-                  <MessageSquare className="h-8 w-8" />
-                </div>
-                <div>
-                  <h3 className="font-bold">ไม่พบรายการจอง</h3>
-                  <p className="text-sm text-muted-foreground">ท่านต้องมีรายการจองที่สำเร็จแล้วจึงจะสามารถแจ้งร้องเรียนได้</p>
-                </div>
-                <Button onClick={() => navigate("/")} variant="outline" className="mt-4">กลับหน้าหลัก</Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {tickets.map((ticket) => (
-                  <Card
-                    key={ticket.id}
-                    className={cn(
-                      "cursor-pointer transition-all border-2",
-                      selectedTicket?.id === ticket.id ? "border-primary bg-primary/5 shadow-md" : "border-transparent hover:border-slate-200"
-                    )}
-                    onClick={() => setSelectedTicket(ticket)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400">#{ticket.bookingReference}</p>
-                          <div className="flex items-center gap-1.5 mt-1 font-bold text-sm">
-                            <MapPin className="h-3.5 w-3.5 text-primary" />
-                            {ticket.origin} → {ticket.destination}
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="text-[10px] uppercase font-bold">
-                          {ticket.date}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {ticket.departureTime}
-                        </span>
-                        <span>ที่นั่ง {ticket.seats.join(", ")}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <div>
+              <Card
+                className="cursor-pointer transition-all border-2 border-slate-200 hover:border-primary shadow-sm"
+                onClick={() => {
+                  setSelectedTicket(null);
+                  setIsGeneralComplaint(true);
+                  setStep(2);
+                }}
+              >
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-sm text-primary">ร้องเรียนเรื่องทั่วไป</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">สถานีจำหน่ายตั๋ว, พนักงาน, หรือรถโดยสารที่ไม่ได้ทำการจองบนระบบ</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-slate-400" />
+                </CardContent>
+              </Card>
+            </div>
 
-            <Button
-              className="w-full h-12 font-bold shadow-lg"
-              disabled={!selectedTicket}
-              onClick={() => setStep(2)}
+            <div className="flex items-center gap-4 py-1">
+              <div className="h-px bg-slate-200 flex-1"></div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">หรือร้องเรียนจากรายการจอง</span>
+              <div className="h-px bg-slate-200 flex-1"></div>
+            </div>
+
+            <Card
+              className="cursor-pointer transition-all border-2 border-slate-200 hover:border-primary shadow-sm"
+              onClick={() => setShowTickets(true)}
             >
-              ถัดไป
-            </Button>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm text-primary">ร้องเรียนจากรายการจอง</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">แจ้งปัญหาการเดินทาง, สภาพรถ, หรือพนักงาน ในรอบที่ท่านเดินทาง</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-400" />
+              </CardContent>
+            </Card>
+
+            <Dialog open={showTickets} onOpenChange={setShowTickets}>
+              <DialogContent className="max-w-full w-full h-[100dvh] rounded-none flex flex-col gap-0 p-0 border-none shadow-none">
+                <DialogHeader className="p-5 pb-3 border-b bg-slate-50/50">
+                  <DialogTitle className="text-left font-bold text-lg">เลือกรายการจอง</DialogTitle>
+                  <DialogDescription className="text-left text-xs">
+                    เลือกรายการจองที่ต้องการแจ้งปัญหา หรือข้อร้องเรียน
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="p-4 overflow-y-auto flex-1 h-full space-y-4">
+                  {loading ? (
+                    <div className="py-20 text-center text-muted-foreground animate-pulse">กำลังโหลดข้อมูลการจอง...</div>
+                  ) : tickets.length === 0 ? (
+                    <div className="py-20 text-center space-y-4">
+                      <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mx-auto text-muted-foreground">
+                        <MessageSquare className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold">ไม่พบรายการจอง</h3>
+                        <p className="text-sm text-muted-foreground">ท่านต้องมีรายการจองที่สำเร็จแล้วจึงจะสามารถแจ้งร้องเรียนได้</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {tickets.map((ticket) => (
+                        <Card
+                          key={ticket.id}
+                          className={cn(
+                            "cursor-pointer transition-all border-2",
+                            selectedTicket?.id === ticket.id ? "border-primary bg-primary/5 shadow-md" : "border-transparent hover:border-slate-200"
+                          )}
+                          onClick={() => setSelectedTicket(ticket)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400">#{ticket.bookingReference}</p>
+                                <div className="flex items-center gap-1.5 mt-1 font-bold text-sm">
+                                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                                  {ticket.origin} → {ticket.destination}
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                                {ticket.date}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {ticket.departureTime}
+                              </span>
+                              <span>ที่นั่ง {ticket.seats.join(", ")}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 pb-24 border-t bg-white mt-auto">
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 font-bold"
+                      onClick={() => {
+                        setShowTickets(false);
+                        setSelectedTicket(null);
+                      }}
+                    >
+                      ย้อนกลับ
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 font-bold shadow-lg"
+                      disabled={!selectedTicket}
+                      onClick={() => {
+                        setShowTickets(false);
+                        setIsGeneralComplaint(false);
+                        setStep(2);
+                      }}
+                    >
+                      ถัดไป
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
-        {step === 2 && selectedTicket && (
+        {step === 2 && (selectedTicket || isGeneralComplaint) && (
           <div className="space-y-6">
             <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
               <h2 className="text-sm font-bold flex items-center gap-2">
@@ -197,48 +283,50 @@ const Complaints = () => {
               <p className="text-xs text-muted-foreground mt-1">กรุณาระบุรายละเอียดให้ชัดเจนเพื่อให้เจ้าหน้าที่ดำเนินการแก้ไข</p>
             </div>
 
-            <Card className="bg-slate-50 border-primary/10 overflow-hidden">
-              <CardContent className="p-0">
-                <div className="bg-primary/10 px-3 py-2 flex justify-between items-center">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-wider">Ticket Info</span>
-                  <span className="text-[10px] font-bold text-primary/60">#{selectedTicket.bookingReference}</span>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Route</p>
-                      <p className="text-sm font-black">{selectedTicket.origin} → {selectedTicket.destination}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Date</p>
-                      <p className="text-sm font-black">{moment(selectedTicket.date).format('D MMM YYYY')}</p>
-                    </div>
+            {selectedTicket && (
+              <Card className="bg-slate-50 border-primary/10 overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="bg-primary/10 px-3 py-2 flex justify-between items-center">
+                    <span className="text-[10px] font-black text-primary uppercase tracking-wider">Ticket Info</span>
+                    <span className="text-[10px] font-bold text-primary/60">#{selectedTicket.bookingReference}</span>
                   </div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Route</p>
+                        <p className="text-sm font-black">{selectedTicket.origin} → {selectedTicket.destination}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Date</p>
+                        <p className="text-sm font-black">{moment(selectedTicket.date).format('D MMM YYYY')}</p>
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-dashed">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Time</p>
-                      <p className="text-xs font-bold">{selectedTicket.departureTime} - {selectedTicket.arrivalTime}</p>
+                    <div className="grid grid-cols-2 gap-4 py-3 border-y border-dashed">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Time</p>
+                        <p className="text-xs font-bold">{selectedTicket.departureTime} - {selectedTicket.arrivalTime}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Seats</p>
+                        <p className="text-xs font-bold text-primary">{selectedTicket.seats.join(", ")}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Seats</p>
-                      <p className="text-xs font-bold text-primary">{selectedTicket.seats.join(", ")}</p>
-                    </div>
-                  </div>
 
-                  <div className="flex justify-between items-center pt-1">
-                    <span className="text-xs font-bold text-muted-foreground">ยอดชำระ</span>
-                    <span className="text-sm font-black text-primary">฿{selectedTicket.total}</span>
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="text-xs font-bold text-muted-foreground">ยอดชำระ</span>
+                      <span className="text-sm font-black text-primary">฿{selectedTicket.total}</span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="busPlate" className="text-xs font-bold flex items-center gap-1.5">
-                    <Bus className="h-3 w-3" /> ทะเบียนรถ
+                    <Bus className="h-3 w-3" /> ทะเบียนรถ {isGeneralComplaint && <span className="text-slate-400 font-normal ml-1">(ถ้ามี)</span>}
                   </Label>
                   <Input
                     id="busPlate"
@@ -279,7 +367,10 @@ const Complaints = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 h-12" onClick={() => setStep(1)}>ย้อนกลับ</Button>
+              <Button variant="outline" className="flex-1 h-12" onClick={() => {
+                setStep(1);
+                setIsGeneralComplaint(false);
+              }}>ย้อนกลับ</Button>
               <Button
                 className="flex-1 h-12 shadow-lg"
                 onClick={handleSubmit}
@@ -309,17 +400,20 @@ const Complaints = () => {
               </p>
             </div>
 
-            <Card className="max-w-xs mx-auto bg-slate-50 border-none shadow-sm">
+            {/* <Card className="max-w-xs mx-auto bg-slate-50 border-none shadow-sm">
               <CardContent className="p-4 text-xs">
                 <p className="font-bold text-slate-400 mb-2 uppercase tracking-widest text-[9px]">หมายเลขรับเรื่อง</p>
                 <p className="text-lg font-black text-primary">{caseId || `CASE-${Math.floor(Math.random() * 900000) + 100000}`}</p>
               </CardContent>
-            </Card>
+            </Card> */}
 
             <div className="pt-6 space-y-3">
               <Button
                 className="w-full h-12 font-bold shadow-md"
-                onClick={() => navigate("/profile")}
+                onClick={() => {
+                  setStep(1);
+                  setIsGeneralComplaint(false);
+                }}
               >
                 กลับไปที่หน้าโปรไฟล์
               </Button>
