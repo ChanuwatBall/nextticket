@@ -43,45 +43,49 @@ const App = () => {
       return;
     }
 
-    liff
-      .init({
-        liffId: import.meta.env.VITE_LIFF_ID,
-      })
-      .then(async () => {
+    // Safety timeout — ถ้า LIFF/API ค้างนาน 12 วิ ให้ปล่อยผ่านไปก่อน
+    const safetyTimer = setTimeout(() => {
+      console.warn("LIFF init safety timeout reached, releasing loading screen");
+      setIsInitializing(false);
+    }, 12000);
+
+    const initLiff = async () => {
+      try {
+        await liff.init({ liffId: import.meta.env.VITE_LIFF_ID });
         console.log("LIFF init succeeded");
+
         if (!liff.isLoggedIn()) {
+          // กำลัง redirect ไป LINE login ไม่ต้องเคลียร์ loading
           liff.login();
-          return; // Redirecting, no need to set state
+          return;
         }
 
-        try {
-          // Parallelize backend login and profile fetching for speed
-          const ltoken = liff.getAccessToken();
-          
-          const [reslogin, profile] = await Promise.all([
-            loginWithLine({ lineAccessToken: ltoken || "" }),
-            liff.getProfile()
-          ]);
+        const ltoken = liff.getAccessToken();
 
-          console.log("Login and profile fetched", { reslogin, profile });
+        const [reslogin, profile] = await Promise.all([
+          loginWithLine({ lineAccessToken: ltoken || "" }),
+          liff.getProfile(),
+        ]);
 
-          // Only store if we got a valid backend session
-          if (reslogin && reslogin.token) {
-            localStorage.setItem("user", JSON.stringify(reslogin));
-            localStorage.setItem("userProfile", JSON.stringify(profile));
-          } else {
-            console.error("Backend login failed or returned invalid session", reslogin);
-          }
-        } catch (error) {
-          console.error("Error during authentication handshake:", error);
-        } finally {
-          setIsInitializing(false);
+        console.log("Login and profile fetched", { reslogin, profile });
+
+        if (reslogin && reslogin.token) {
+          localStorage.setItem("user", JSON.stringify(reslogin));
+          localStorage.setItem("userProfile", JSON.stringify(profile));
+        } else {
+          console.error("Backend login failed or returned invalid session", reslogin);
         }
-      })
-      .catch((e: Error) => {
-        console.error("LIFF init failed", e);
+      } catch (error) {
+        console.error("LIFF init / auth error:", error);
+      } finally {
+        clearTimeout(safetyTimer);
         setIsInitializing(false);
-      });
+      }
+    };
+
+    initLiff();
+
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   if (isInitializing) {

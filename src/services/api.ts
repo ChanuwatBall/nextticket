@@ -37,7 +37,6 @@ export const register = async (body: any) => {
 }
 
 export const loginWithLine = async (body: { lineAccessToken: string }) => {
-
   return await api.post("/api/auth/line", {
     "lineAccessToken": body.lineAccessToken
   })
@@ -47,7 +46,8 @@ export const loginWithLine = async (body: { lineAccessToken: string }) => {
     })
     .catch((err) => {
       console.log("loginWithLine err ", err)
-      return err.response.data
+      // err.response อาจเป็น undefined เมื่อเกิด network error / CORS
+      return err?.response?.data ?? null
     })
 }
 
