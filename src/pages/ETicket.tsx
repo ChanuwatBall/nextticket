@@ -3,7 +3,7 @@ import { useBookingStore } from "@/store/bookingStore";
 import { provinces, boardingPoints } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, ClockAlert, Download, Mail } from "lucide-react";
+import { CheckCircle, ClockAlert, Download, Mail, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { bookingDetail } from "@/services/api";
@@ -15,6 +15,7 @@ const ETicketPage = () => {
   const navigate = useNavigate();
   const [booking, setBooking] = useState<any>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const originName = store.originProvinceId?.name
   const destName = store.destinationProvinceId?.name
@@ -28,27 +29,52 @@ const ETicketPage = () => {
   }
 
   const conf = async () => {
-    const userstr = localStorage.getItem("user")
-    const user = JSON.parse(userstr)
-    const res = await bookingDetail({ id: bookingref, token: user.token })
-    console.log("res ", res)
-    if (res?.error !== undefined) {
-      console.log("error booking detail")
+    try {
+      const userstr = localStorage.getItem("user");
+      if (!userstr) {
+        setIsLoading(false);
+        return;
+      }
+      const user = JSON.parse(userstr);
+      const res = await bookingDetail({ id: bookingref, token: user.token });
+      console.log("res ", res);
+      if (res?.error !== undefined) {
+        console.log("error booking detail");
+      }
+      setBooking(res);
+      if (res?.tripId && res?.bookingReference) {
+        const qrBookingPayload = JSON.stringify({ "trip": res.tripId, "bookingReference": res.bookingReference });
+        QRCode.toDataURL(btoa(qrBookingPayload))
+          .then((code) => setQrCode(code))
+          .catch((err) => console.error("Error generating QR code:", err));
+      }
+    } catch (error) {
+      console.error("Error loading booking detail:", error);
+    } finally {
+      setIsLoading(false);
     }
-    const qrBookingPayload = JSON.stringify({ "trip": res.tripId, "bookingReference": res.bookingReference });
-    const qrBookingCode = await QRCode.toDataURL(btoa(qrBookingPayload));
-    setQrCode(qrBookingCode)
-    setBooking(res)
-    // store.setBookingQrcode(qrBookingCode);
+  };
 
-
-  }
   useEffect(() => {
-    console.log("bookingref ", bookingref)
+    console.log("bookingref ", bookingref);
     if (bookingref) {
-      conf()
+      conf();
+    } else {
+      setIsLoading(false);
     }
-  }, [])
+  }, [bookingref]);
+
+  if (isLoading) {
+    return (
+      <BookingLayout showSteps={false} navto={() => navigate(-1)}>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground font-medium">กำลังโหลดข้อมูล...</p>
+        </div>
+      </BookingLayout>
+    );
+  }
+
   return (
     <BookingLayout showSteps={false} navto={() => navigate(-1)}>
       <div className="px-4 space-y-4 pt-4">
@@ -64,8 +90,15 @@ const ETicketPage = () => {
 
         {booking?.paymentStatus === "paid" && <Card>
           <CardContent className="p-6 flex flex-col items-center">
-            <div className="bg-card border-2 border-border rounded-xl p-4 mb-3">
-              <img src={qrCode} alt="QR Code" />
+            <div className="bg-card border-2 border-border rounded-xl p-4 mb-3 w-48 h-48 flex items-center justify-center">
+              {qrCode ? (
+                <img src={qrCode} alt="QR Code" className="w-full h-full object-contain" />
+              ) : (
+                <div className="flex flex-col items-center justify-center space-y-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">กำลังสร้าง QR...</span>
+                </div>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
           </CardContent>

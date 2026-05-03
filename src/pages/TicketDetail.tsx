@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { QrCode, MapPin, Clock, Bus, User, CreditCard, ArrowLeft, Download, Mail, Phone, IdCard, AlertCircle, Check as CheckIcon } from "lucide-react";
 import { useBookingStore } from "@/store/bookingStore";
 import { useEffect, useState } from "react";
@@ -305,7 +306,11 @@ const TicketDetail = () => {
             <div className="flex flex-col items-center py-5 bg-card">
               <div className="border-2 border-border rounded-xl p-1 mb-1">
                 {/* <QrCode className="h-28 w-28 text-foreground" /> */}
-                <img src={qr} alt="qr code" className="h-40 w-40 text-foreground" />
+                {qr ? (
+                  <img src={qr} alt="qr code" className="h-40 w-40 text-foreground" />
+                ) : (
+                  <Skeleton className="h-40 w-40" />
+                )}
               </div>
               <p className="text-xs text-muted-foreground">แสดง QR Code นี้เมื่อขึ้นรถ</p>
             </div>
