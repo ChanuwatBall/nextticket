@@ -61,19 +61,33 @@ const App = () => {
         }
 
         const ltoken = liff.getAccessToken();
+        console.log("ltoken ", ltoken);
 
-        const [reslogin, profile] = await Promise.all([
-          loginWithLine({ lineAccessToken: ltoken || "" }),
-          liff.getProfile(),
-        ]);
+        try {
+          const [reslogin, profile] = await Promise.all([
+            loginWithLine({ lineAccessToken: ltoken || "" }),
+            liff.getProfile(),
+          ]);
 
-        console.log("Login and profile fetched", { reslogin, profile });
+          console.log("Login and profile fetched", { reslogin, profile });
 
-        if (reslogin && reslogin.token) {
-          localStorage.setItem("user", JSON.stringify(reslogin));
-          localStorage.setItem("userProfile", JSON.stringify(profile));
-        } else {
-          console.error("Backend login failed or returned invalid session", reslogin);
+          if (reslogin && reslogin.token) {
+            localStorage.setItem("user", JSON.stringify(reslogin));
+            localStorage.setItem("userProfile", JSON.stringify(profile));
+          } else {
+            console.error("Backend login failed or returned invalid session", reslogin);
+            // กรณี Backend ปฏิเสธ Token เดิมที่หมดอายุ
+            // สั่ง Logout ทิ้งแล้ว Login ใหม่เพื่อบังคับขอ Access Token ตัวใหม่
+            liff.logout();
+            liff.login();
+            return;
+          }
+        } catch (apiError) {
+          console.error("API error with current token:", apiError);
+          // กรณี API error (เช่น 401 Unauthorized) เพราะ Token มีปัญหา
+          liff.logout();
+          liff.login();
+          return;
         }
       } catch (error) {
         console.error("LIFF init / auth error:", error);
