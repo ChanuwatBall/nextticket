@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import "../css/Home.css";
 import { mockPromotions } from "@/data/mockData";
 // import { getRoutes, getProvinces, getPromotions, Province } from "@/services/api";
@@ -35,6 +36,7 @@ const Home = () => {
   const [routes, setRoutes] = useState<any[]>([]);
   const [openRoute, setOpenRoute] = useState(false);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [faqs, setFaqs] = useState<any[]>([]);
   const [userMe, setUserMe] = useState<any>(null);
   const [busStops, setBusStops] = useState<any[]>([]);
   // API Queries
@@ -142,6 +144,17 @@ const Home = () => {
 
       }
 
+      try {
+        supabase.from("faqs").select("*")
+          .eq("is_active", true)
+          .order("order", { ascending: true })
+          .then(res => {
+            console.log("faqs ", res.data)
+            if (res.data) setFaqs(res.data)
+          })
+      } catch (err) {
+
+      }
     }
     fetchUser();
     conf();
@@ -507,6 +520,23 @@ const Home = () => {
               }
             </Swiper>
           </section>
+
+          {faqs && faqs.length > 0 && (
+            <section className="mt-8 mb-6">
+              <h2 className="text-xl font-bold mb-3">คำถามที่พบบ่อย</h2>
+              <Accordion type="single" collapsible className="w-full bg-white rounded-2xl p-4 shadow-sm">
+                {faqs.map((faq) => (
+                  <AccordionItem key={faq.id} value={faq.id}>
+                    <AccordionTrigger className="text-left font-medium">{faq.question}</AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap text-left">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </section>
+          )}
+
           <div className="w-100" style={{ height: "6rem" }} ></div>
         </div>
 
