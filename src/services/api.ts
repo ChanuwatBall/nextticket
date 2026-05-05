@@ -51,6 +51,18 @@ export const loginWithLine = async (body: { lineAccessToken: string }) => {
     })
 }
 
+export const refreshToken = async (body: { refresh_token: string }) => {
+  return await api.post("/api/auth/refresh", body)
+    .then((res) => {
+      console.log("refreshToken res ", res)
+      return res.data
+    })
+    .catch((err) => {
+      console.log("refreshToken err ", err)
+      return err?.response?.data ?? null
+    })
+}
+
 export const logout = async () => {
   const userstr = localStorage.getItem("user")
   const user = JSON.parse(userstr || "{}")

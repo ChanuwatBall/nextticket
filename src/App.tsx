@@ -29,7 +29,7 @@ import SearchBooking from "./pages/SearchBooking";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import PromotionDetail from "./pages/PromotionDetail";
-import { loginWithLine } from "./services/api";
+import { loginWithLine, refreshToken } from "./services/api";
 
 const queryClient = new QueryClient();
 
@@ -64,12 +64,26 @@ const App = () => {
         console.log("ltoken ", ltoken);
 
         try {
-          const [reslogin, profile] = await Promise.all([
+          let [reslogin, profile] = await Promise.all([
             loginWithLine({ lineAccessToken: ltoken || "" }),
             liff.getProfile(),
           ]);
 
           console.log("Login and profile fetched", { reslogin, profile });
+
+          if (!reslogin || !reslogin.token) {
+            const userStr = localStorage.getItem("user");
+            if (userStr) {
+              const userObj = JSON.parse(userStr);
+              if (userObj.refresh_token) {
+                console.log("Trying to refresh token...");
+                const refreshRes = await refreshToken({ refresh_token: userObj.refresh_token });
+                if (refreshRes && refreshRes.token) {
+                  reslogin = refreshRes;
+                }
+              }
+            }
+          }
 
           if (reslogin && reslogin.token) {
             localStorage.setItem("user", JSON.stringify(reslogin));
