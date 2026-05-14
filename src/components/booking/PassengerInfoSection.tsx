@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useBookingStore, type PassengerInfo } from "@/store/bookingStore";
+import { useBookingStore, type PassengerInfo, type PassengerMeal } from "@/store/bookingStore";
 import { supabase } from "@/http/supabase";
 import { validatePromo } from "@/services/api";
 import { Input } from "@/components/ui/input";
@@ -14,10 +14,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Tag, Ticket as TicketIcon, Check, User, Coins, Route } from "lucide-react";
+import { Tag, Ticket as TicketIcon, Check, User, Coins, Route, UtensilsCrossed } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import moment from "moment";
+import MealModal from "./MealModal";
 
 interface PassengerInfoSectionProps {
   onContinue: () => void;
@@ -48,28 +49,19 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
     });
   });
 
+  const [mealAddons, setMealAddons] = useState<PassengerMeal[]>(store.mealAddons ?? []);
+  const [mealModalSeatId, setMealModalSeatId] = useState<string | null>(null);
+
   const [promoInput, setPromoInput] = useState(store.promoCode);
   const [promoApplied, setPromoApplied] = useState(store.discount > 0);
   const [promoError, setPromoError] = useState("");
   const [applyAllPhone, setApplyAllPhone] = useState(false);
   const [promotions, setPromotions] = useState<any[]>([]);
   const [showCouponDialog, setShowCouponDialog] = useState(false);
-  
+
   const redeemableCoupons = [
-    {
-      id: 'coupon-1',
-      title: 'คูปองส่วนลด 50 บาท',
-      pointsRequired: 200,
-      code: 'PT50',
-      discountAmount: 50
-    },
-    {
-      id: 'coupon-2',
-      title: 'คูปองส่วนลด 100 บาท',
-      pointsRequired: 500,
-      code: 'PT100',
-      discountAmount: 100
-    }
+    { id: 'coupon-1', title: 'คูปองส่วนลด 50 บาท', pointsRequired: 200, code: 'PT50', discountAmount: 50 },
+    { id: 'coupon-2', title: 'คูปองส่วนลด 100 บาท', pointsRequired: 500, code: 'PT100', discountAmount: 100 },
   ];
 
   useEffect(() => {
@@ -78,7 +70,6 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
       .gte("valid_to", moment().format("YYYY-MM-DDTHH:mm:ssZ"))
       .then(res => {
         const apiPromos = res.data || [];
-        
         const routeOrigin = store.selectedTrip?.origin || 'กรุงเทพฯ';
         const routeDest = store.selectedTrip?.destination || 'นครราชสีมา';
         const freeRoutePromo = {
@@ -89,26 +80,17 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
           discountAmount: tripPrice,
           isRouteReward: true,
         };
-
         setPromotions([freeRoutePromo, ...apiPromos]);
       });
   }, [store.selectedTrip, tripPrice]);
 
-  // Sync passengers when selectedSeats changes
   useEffect(() => {
     setPassengers((prev) => {
       const existingMap = new Map(prev.map(p => [p.seatId, p]));
       return store.selectedSeats.map((seat) => {
         if (existingMap.has(seat.id)) return existingMap.get(seat.id)!;
         const inStore = store.passengers.find(p => p.seatId === seat.id);
-        return inStore || {
-          seatId: seat.id,
-          seatNumber: seat.number,
-          fullName: "",
-          thaiId: "",
-          phone: "",
-          passengerType: "male",
-        };
+        return inStore || { seatId: seat.id, seatNumber: seat.number, fullName: "", thaiId: "", phone: "", passengerType: "male" };
       });
     });
   }, [store.selectedSeats]);
@@ -123,45 +105,40 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
     });
   };
 
-  const calculateSubtotal = () => {
-    return passengers.length * tripPrice;
+  const getMeal = (seatId: string) => mealAddons.find(m => m.seatId === seatId) ?? null;
+
+  const getMealTotal = (seatId: string) => {
+    const m = getMeal(seatId);
+    if (!m) return 0;
+    return (m.main?.price ?? 0) + (m.drink?.price ?? 0) + (m.dessert?.price ?? 0);
   };
+
+  const totalMealCost = mealAddons.reduce((sum, m) => sum + (m.main?.price ?? 0) + (m.drink?.price ?? 0) + (m.dessert?.price ?? 0), 0);
+
+  const calculateSubtotal = () => passengers.length * tripPrice;
 
   const doApplyPromo = async (code: string) => {
     if (!code) return;
     const redeemed = redeemableCoupons.find(c => c.code === code.toUpperCase());
     if (redeemed) {
-      setPromoError("");
-      setPromoApplied(true);
-      store.setPromoCode(code);
-      store.setDiscount(redeemed.discountAmount);
-      toast.success("ใช้โค้ดลดจากคูปองพอยท์สำเร็จ!");
-      return;
+      setPromoError(""); setPromoApplied(true);
+      store.setPromoCode(code); store.setDiscount(redeemed.discountAmount);
+      toast.success("ใช้โค้ดลดจากคูปองพอยท์สำเร็จ!"); return;
     }
-
     if (code.toUpperCase() === 'FREERIDE10') {
-      setPromoError("");
-      setPromoApplied(true);
-      store.setPromoCode(code);
-      store.setDiscount(tripPrice);
-      toast.success("ใช้สิทธิ์นั่งฟรี 1 เที่ยวสำเร็จ!");
-      return;
+      setPromoError(""); setPromoApplied(true);
+      store.setPromoCode(code); store.setDiscount(tripPrice);
+      toast.success("ใช้สิทธิ์นั่งฟรี 1 เที่ยวสำเร็จ!"); return;
     }
-
     const promo: any = await validatePromo(code.toUpperCase(), store.selectedTrip?.id ?? "");
     if (!promo.valid) {
-      setPromoError(promo.message);
-      setPromoApplied(false);
-      store.setDiscount(0);
-      toast.error(promo.message);
+      setPromoError(promo.message); setPromoApplied(false);
+      store.setDiscount(0); toast.error(promo.message);
     } else {
-      setPromoError("");
-      setPromoApplied(true);
+      setPromoError(""); setPromoApplied(true);
       store.setPromoCode(code);
       const subtotal = calculateSubtotal();
-      const discount = promo.discountPercent > 0
-        ? Math.round(subtotal * promo.discountPercent / 100)
-        : promo.discountAmount;
+      const discount = promo.discountPercent > 0 ? Math.round(subtotal * promo.discountPercent / 100) : promo.discountAmount;
       store.setDiscount(discount);
       toast.success("ใช้โค้ดลดสำเร็จ!");
     }
@@ -170,7 +147,6 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
   const applyPromo = () => doApplyPromo(promoInput);
 
   const handleRedeemCoupon = (coupon: any) => {
-    // Add to promotion list if not present
     const isAlreadyAdded = promotions.find(p => p.code === coupon.code);
     if (!isAlreadyAdded) {
       setPromotions([{ ...coupon, isRedeemed: true, subtitle: `แลกคูปองด้วย ${coupon.pointsRequired} พอยท์` }, ...promotions]);
@@ -181,103 +157,130 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
     doApplyPromo(coupon.code);
   };
 
-  const allValid = passengers.every(
-    (p) => p.fullName.trim() && p.phone.trim().length >= 9
-  );
+  const handleMealConfirm = (meal: PassengerMeal) => {
+    setMealAddons(prev => {
+      const without = prev.filter(m => m.seatId !== meal.seatId);
+      const hasSomething = meal.main || meal.drink || meal.dessert;
+      const next = hasSomething ? [...without, meal] : without;
+      store.setMealAddons(next);
+      return next;
+    });
+  };
+
+  const allValid = passengers.every(p => p.fullName.trim() && p.phone.trim().length >= 9);
 
   const handleContinue = () => {
     store.setPassengers(passengers);
+    store.setMealAddons(mealAddons);
     onContinue();
   };
 
   const subtotal = calculateSubtotal();
+  const grandTotal = Math.max(0, subtotal + totalMealCost - store.discount);
+
+  const mealModalPassenger = passengers.find(p => p.seatId === mealModalSeatId);
 
   return (
     <div className="px-4 space-y-4">
       <h3 className="text-lg font-bold">ข้อมูลผู้โดยสาร</h3>
 
       <Accordion type="multiple" defaultValue={passengers.map(p => p.seatId)} className="space-y-3">
-        {passengers.map((p, i) => (
-          <AccordionItem key={p.seatId} value={p.seatId} className="border rounded-xl bg-card px-4">
-            <AccordionTrigger className="hover:no-underline py-4">
-              <div className="flex items-center justify-between w-full pr-4 text-left">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold flex items-center gap-2">
-                    <User className="h-3.5 w-3.5 text-primary" />
-                    ผู้โดยสาร #{i + 1} {p.fullName && `- ${p.fullName}`}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-medium">ที่นั่ง {p.seatNumber}</span>
-                </div>
-                <Badge variant="outline" className="ml-auto bg-primary/5 text-primary border-primary/20">
-                  {passengerTypes.find(t => t.value === p.passengerType)?.label}
-                </Badge>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="pb-4 space-y-4 pt-2 border-t border-dashed">
-              <div className="space-y-3">
-                <div className="grid gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">ชื่อ-นามสกุล</label>
-                    <Input
-                      placeholder="กรอกชื่อ-นามสกุล"
-                      value={p.fullName}
-                      onChange={(e) => updatePassenger(i, "fullName", e.target.value)}
-                      className="h-11 shadow-sm"
-                    />
+        {passengers.map((p, i) => {
+          const mealTotal = getMealTotal(p.seatId);
+          const meal = getMeal(p.seatId);
+          return (
+            <AccordionItem key={p.seatId} value={p.seatId} className="border rounded-xl bg-card px-4">
+              <AccordionTrigger className="hover:no-underline py-4">
+                <div className="flex items-center justify-between w-full pr-4 text-left">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-bold flex items-center gap-2">
+                      <User className="h-3.5 w-3.5 text-primary" />
+                      ผู้โดยสาร #{i + 1} {p.fullName && `- ${p.fullName}`}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-medium">ที่นั่ง {p.seatNumber}</span>
                   </div>
-                  
-                  {(i === 0 || !applyAllPhone) && (
+                  <Badge variant="outline" className="ml-auto bg-primary/5 text-primary border-primary/20">
+                    {passengerTypes.find(t => t.value === p.passengerType)?.label}
+                  </Badge>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4 space-y-4 pt-2 border-t border-dashed">
+                <div className="space-y-3">
+                  <div className="grid gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">เบอร์โทรศัพท์</label>
-                      <Input
-                        placeholder="08X-XXX-XXXX"
-                        value={p.phone}
-                        onChange={(e) => updatePassenger(i, "phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                        className="h-11 shadow-sm"
-                        inputMode="tel"
-                      />
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">ชื่อ-นามสกุล</label>
+                      <Input placeholder="กรอกชื่อ-นามสกุล" value={p.fullName} onChange={(e) => updatePassenger(i, "fullName", e.target.value)} className="h-11 shadow-sm" />
                     </div>
-                  )}
 
-                  {i === 0 && (
-                    <div className="flex items-center gap-2 text-xs py-1">
-                      <Checkbox
-                        id="apply-all"
-                        checked={applyAllPhone}
-                        onCheckedChange={(c) => {
+                    {(i === 0 || !applyAllPhone) && (
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">เบอร์โทรศัพท์</label>
+                        <Input placeholder="08X-XXX-XXXX" value={p.phone} onChange={(e) => updatePassenger(i, "phone", e.target.value.replace(/\D/g, "").slice(0, 10))} className="h-11 shadow-sm" inputMode="tel" />
+                      </div>
+                    )}
+
+                    {i === 0 && (
+                      <div className="flex items-center gap-2 text-xs py-1">
+                        <Checkbox id="apply-all" checked={applyAllPhone} onCheckedChange={(c) => {
                           setApplyAllPhone(c as boolean);
                           if (c) setPassengers(prev => prev.map(p => ({ ...p, phone: passengers[0].phone })));
-                        }}
-                      />
-                      <label htmlFor="apply-all" className="cursor-pointer font-medium text-muted-foreground">ใช้เบอร์นี้กับทุกคน</label>
+                        }} />
+                        <label htmlFor="apply-all" className="cursor-pointer font-medium text-muted-foreground">ใช้เบอร์นี้กับทุกคน</label>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">ประเภทผู้โดยสาร</label>
+                      <Select value={p.passengerType} onValueChange={(v) => updatePassenger(i, "passengerType", v)}>
+                        <SelectTrigger className="h-11 shadow-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {passengerTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">ประเภทผู้โดยสาร</label>
-                    <Select value={p.passengerType} onValueChange={(v) => updatePassenger(i, "passengerType", v)}>
-                      <SelectTrigger className="h-11 shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {passengerTypes.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
-                </div>
 
-                <div className="bg-primary/5 rounded-lg p-2.5 flex justify-between items-center mt-2">
-                  <span className="text-[10px] font-bold text-primary uppercase">ราคาที่นั่งนี้</span>
-                  <div className="text-right">
+                  {/* Seat price row */}
+                  <div className="bg-primary/5 rounded-lg p-2.5 flex justify-between items-center mt-2">
+                    <span className="text-[10px] font-bold text-primary uppercase">ราคาที่นั่งนี้</span>
                     <span className="text-sm font-bold text-primary">฿{tripPrice.toLocaleString()}</span>
                   </div>
+
+                  {/* Meal addon row */}
+                  <div className="rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UtensilsCrossed className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-bold text-primary">อาหารบนรถ</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[11px] font-bold border-primary/30 text-primary bg-white hover:bg-primary/5"
+                        onClick={() => setMealModalSeatId(p.seatId)}
+                      >
+                        {meal ? "เปลี่ยนอาหาร" : "+ เพิ่มอาหาร"}
+                      </Button>
+                    </div>
+                    {meal && (mealTotal > 0) ? (
+                      <div className="mt-2 space-y-1">
+                        {meal.main && <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">🍽 {meal.main.name}</span><span className="font-bold text-primary">฿{meal.main.price}</span></div>}
+                        {meal.drink && <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">☕ {meal.drink.name}</span><span className="font-bold text-primary">฿{meal.drink.price}</span></div>}
+                        {meal.dessert && <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">🍰 {meal.dessert.name}</span><span className="font-bold text-primary">฿{meal.dessert.price}</span></div>}
+                        <div className="flex justify-between text-[11px] font-extrabold pt-1 border-t border-primary/20">
+                          <span className="text-primary">รวมอาหาร</span>
+                          <span className="text-primary">฿{mealTotal}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-primary/60 mt-1">ยังไม่ได้เลือกอาหาร</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
       </Accordion>
 
       <Card>
@@ -295,16 +298,10 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
             {promotions.map((promo) => (
               <div
                 key={promo.id}
-                onClick={() => {
-                  setPromoInput(promo.code);
-                  setPromoError("");
-                  setPromoApplied(false);
-                  doApplyPromo(promo.code);
-                }}
+                onClick={() => { setPromoInput(promo.code); setPromoError(""); setPromoApplied(false); doApplyPromo(promo.code); }}
                 className={`flex-shrink-0 w-48 p-2.5 rounded-xl border-2 transition-all cursor-pointer ${promoInput === promo.code
                   ? (promo.isRedeemed ? "border-amber-400 bg-amber-50 shadow-sm ring-1 ring-amber-400/20" : promo.isRouteReward ? "border-emerald-400 bg-emerald-50 shadow-sm ring-1 ring-emerald-400/20" : "border-primary bg-primary/5 shadow-sm")
-                  : "border-border hover:border-muted-foreground/30 bg-card"
-                  }`}
+                  : "border-border hover:border-muted-foreground/30 bg-card"}`}
               >
                 <div className="flex items-start justify-between mb-1">
                   <div className={`p-1 rounded-lg ${promo.isRedeemed ? 'bg-amber-100/50' : promo.isRouteReward ? 'bg-emerald-100/50' : 'bg-primary/10'}`}>
@@ -328,31 +325,28 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
             )}
           </div>
 
-          <label className="text-sm font-bold flex items-center gap-1.5 mb-2">
-            หรือระบุรหัสโปรโมชั่น
-          </label>
+          <label className="text-sm font-bold flex items-center gap-1.5 mb-2">หรือระบุรหัสโปรโมชั่น</label>
           <div className="flex gap-2">
-            <Input
-              placeholder="กรอกรหัส"
-              value={promoInput}
-              onChange={(e) => { setPromoInput(e.target.value); setPromoApplied(false); setPromoError(""); }}
-              className="h-12 flex-1 border-dashed"
-            />
-            <Button onClick={applyPromo} variant="outline" className="h-12 px-6">
-              ใช้โค้ด
-            </Button>
+            <Input placeholder="กรอกรหัส" value={promoInput} onChange={(e) => { setPromoInput(e.target.value); setPromoApplied(false); setPromoError(""); }} className="h-12 flex-1 border-dashed" />
+            <Button onClick={applyPromo} variant="outline" className="h-12 px-6">ใช้โค้ด</Button>
           </div>
           {promoError && <p className="text-xs text-destructive mt-1">{promoError}</p>}
           {promoApplied && <p className="text-xs text-primary mt-1 font-medium italic">✓ ใช้โค้ดสำเร็จ ลดเพิ่ม ฿{store.discount}</p>}
         </CardContent>
       </Card>
 
-      {/* Summary for clarity in step 3 */}
+      {/* Summary */}
       <div className="bg-slate-50 border rounded-xl p-4 space-y-1 text-sm shadow-inner">
         <div className="flex justify-between">
           <span>ราคาสุทธิ (รายที่นั่ง)</span>
-          <span>฿{subtotal}</span>
+          <span>฿{subtotal.toLocaleString()}</span>
         </div>
+        {totalMealCost > 0 && (
+          <div className="flex justify-between text-primary font-medium">
+            <span>ค่าอาหารบนรถ</span>
+            <span>+฿{totalMealCost.toLocaleString()}</span>
+          </div>
+        )}
         {store.discount > 0 && (
           <div className="flex justify-between text-primary font-bold">
             <span>{redeemableCoupons.find(c => c.code === promoInput?.toUpperCase()) ? 'ส่วนลดจากคูปองพอยท์' : promoInput?.toUpperCase() === 'FREERIDE10' ? 'สิทธิ์นั่งฟรี 1 เที่ยว' : 'ส่วนลดโปรโมชั่น'}</span>
@@ -361,10 +355,11 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
         )}
         <div className="flex justify-between font-extrabold text-base pt-2 border-t mt-1">
           <span>รวมยอดที่ต้องชำระ</span>
-          <span className="text-primary text-lg">฿{Math.max(0, subtotal - store.discount)}</span>
+          <span className="text-primary text-lg">฿{grandTotal.toLocaleString()}</span>
         </div>
       </div>
 
+      {/* Coupon dialog */}
       <Dialog open={showCouponDialog} onOpenChange={setShowCouponDialog}>
         <DialogContent className="max-w-md w-[95vw] rounded-2xl mx-auto flex flex-col gap-0 p-0 border-none shadow-xl max-h-[80vh]">
           <DialogHeader className="p-5 pb-3 border-b bg-amber-50/50 rounded-t-2xl">
@@ -379,22 +374,31 @@ const PassengerInfoSection = ({ onContinue }: PassengerInfoSectionProps) => {
             {redeemableCoupons.map(coupon => (
               <div key={coupon.id} className="bg-white border border-amber-100 rounded-xl p-3 shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 p-2 rounded-full shrink-0">
-                    <Coins className="h-4 w-4 text-amber-600" />
-                  </div>
+                  <div className="bg-amber-100 p-2 rounded-full shrink-0"><Coins className="h-4 w-4 text-amber-600" /></div>
                   <div>
                     <h4 className="font-bold text-sm text-slate-800 leading-none mb-1.5">{coupon.title}</h4>
                     <p className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 inline-block">ใช้ {coupon.pointsRequired} พอยท์</p>
                   </div>
                 </div>
-                <Button onClick={() => handleRedeemCoupon(coupon)} size="sm" className="bg-amber-500 hover:bg-amber-600 h-8 text-xs font-bold text-white shadow-sm shrink-0">
-                  แลกเลย
-                </Button>
+                <Button onClick={() => handleRedeemCoupon(coupon)} size="sm" className="bg-amber-500 hover:bg-amber-600 h-8 text-xs font-bold text-white shadow-sm shrink-0">แลกเลย</Button>
               </div>
             ))}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Meal Modal */}
+      {mealModalSeatId && mealModalPassenger && (
+        <MealModal
+          open={!!mealModalSeatId}
+          onClose={() => setMealModalSeatId(null)}
+          seatId={mealModalSeatId}
+          seatNumber={mealModalPassenger.seatNumber}
+          passengerName={mealModalPassenger.fullName}
+          initial={getMeal(mealModalSeatId)}
+          onConfirm={handleMealConfirm}
+        />
+      )}
 
       <Button onClick={handleContinue} disabled={!allValid} className="w-full h-12 text-base font-bold">
         ยืนยันข้อมูลผู้โดยสาร

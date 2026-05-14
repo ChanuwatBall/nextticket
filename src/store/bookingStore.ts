@@ -10,6 +10,20 @@ export interface PassengerInfo {
   passengerType: 'child' | 'male' | 'female' | 'monk';
 }
 
+export interface MealItem {
+  id: string;
+  name: string;
+  price: number;
+  category: 'main' | 'drink' | 'dessert';
+}
+
+export interface PassengerMeal {
+  seatId: string;
+  main: MealItem | null;
+  drink: MealItem | null;
+  dessert: MealItem | null;
+}
+
 interface BookingState {
   // Step 1
   routeGroupid: any;
@@ -29,6 +43,7 @@ interface BookingState {
 
   // Step 4
   passengers: PassengerInfo[];
+  mealAddons: PassengerMeal[];
   promoCode: string;
   discount: number;
 
@@ -51,6 +66,7 @@ interface BookingState {
   setSelectedTrip: (trip: Trip) => void;
   setSelectedSeats: (seats: Seat[]) => void;
   setPassengers: (passengers: PassengerInfo[]) => void;
+  setMealAddons: (mealAddons: PassengerMeal[]) => void;
   setPromoCode: (code: string) => void;
   setDiscount: (discount: number) => void;
   setPaymentMethod: (method: string) => void;
@@ -74,6 +90,7 @@ const initialState = {
   selectedTrip: null,
   selectedSeats: [],
   passengers: [],
+  mealAddons: [],
   promoCode: '',
   discount: 0,
   paymentMethod: '',
@@ -94,9 +111,10 @@ export const useBookingStore = create<BookingState>((set) => ({
   setBoardingPoint: (boardingPointId) => set({ boardingPointId }),
   setDropOffPoint: (dropOffPointId) => set({ dropOffPointId }),
   setPassengerCount: (passengerCount) => set({ passengerCount }),
-  setSelectedTrip: (selectedTrip) => set({ selectedTrip, selectedSeats: [], passengers: [], promoCode: '', discount: 0 }),
-  setSelectedSeats: (selectedSeats) => set({ selectedSeats, passengers: [] }),
+  setSelectedTrip: (selectedTrip) => set({ selectedTrip, selectedSeats: [], passengers: [], mealAddons: [], promoCode: '', discount: 0 }),
+  setSelectedSeats: (selectedSeats) => set({ selectedSeats, passengers: [], mealAddons: [] }),
   setPassengers: (passengers) => set({ passengers }),
+  setMealAddons: (mealAddons) => set({ mealAddons }),
   setPromoCode: (promoCode) => set({ promoCode }),
   setDiscount: (discount) => set({ discount }),
   setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
